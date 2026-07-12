@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>findingfocus.music</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #0E0C0B;
+    --panel: #17140F;
+    --panel-line: #2A241C;
+    --mist-far: #3A4148;
+    --mist-mid: #262A2E;
+    --mist-near: #14131299;
+    --text: #E8DCC4;
+    --text-dim: #8C8172;
+    --amber: #C98553;
+    --sage: #7C9585;
+    --plum: #8E7093;
+    --statusbar: #D8C9A0;
+    --mono: 'JetBrains Mono', monospace;
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{ height:100%; }
+  body{
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--mono);
+    min-height: 100vh;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding: 24px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* ---- ink-wash mountain backdrop ---- */
+  .backdrop{
+    position: fixed; inset: 0;
+    z-index: 0;
+    background: linear-gradient(180deg, #100E0D 0%, #17151A 55%, #0E0C0B 100%);
+  }
+  .backdrop svg{ position:absolute; bottom:0; left:0; width:100%; height:70%; }
+
+  .app{
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    max-width: 560px;
+    background: rgba(14,12,11,0.72);
+    border: 1px solid var(--panel-line);
+    border-radius: 6px;
+    backdrop-filter: blur(6px);
+    overflow: hidden;
+    box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  }
+
+  /* ---- tab bar (mimics editor tabs) ---- */
+  .tabs{
+    display:flex;
+    background: var(--panel);
+    border-bottom: 1px solid var(--panel-line);
+    overflow-x: auto;
+  }
+  .tab{
+    padding: 10px 18px;
+    font-size: 12px;
+    color: var(--text-dim);
+    border-right: 1px solid var(--panel-line);
+    cursor: pointer;
+    white-space: nowrap;
+    display:flex;
+    align-items:center;
+    gap: 8px;
+    transition: all 0.15s ease;
+  }
+  .tab .dot{ width:6px; height:6px; border-radius:50%; background: var(--panel-line); }
+  .tab.active{ color: var(--amber); background: rgba(201,133,83,0.06); }
+  .tab.active .dot{ background: var(--amber); box-shadow: 0 0 6px var(--amber); }
+  .tab:hover{ color: var(--text); }
+
+  /* ---- now playing / comment line ---- */
+  .body-pad{ padding: 28px 24px 20px; }
+  .comment{
+    color: var(--sage);
+    font-size: 12.5px;
+    margin-bottom: 4px;
+  }
+  .now-playing{
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--text);
+    margin-bottom: 2px;
+  }
+  .now-playing .kw{ color: var(--plum); }
+  .code-line{
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 26px;
+  }
+
+  /* ---- waveform-style bar visual instead of wheel ---- */
+  .stage{
+    display:flex;
+    align-items:flex-end;
+    gap: 4px;
+    height: 84px;
+    margin-bottom: 22px;
+    padding: 0 2px;
+  }
+  .bar{
+    flex:1;
+    background: var(--panel-line);
+    border-radius: 2px 2px 0 0;
+    transition: background 0.2s ease;
+  }
+  .bar.played{ background: var(--amber); }
+
+  .time-row{
+    display:flex;
+    justify-content:space-between;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 22px;
+  }
+  .time-row span:last-child{ color: var(--text-dim); }
+
+  /* ---- transport ---- */
+  .transport{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    gap: 22px;
+    margin-bottom: 8px;
+  }
+  .tbtn{
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    cursor: pointer;
+    display:flex; align-items:center; justify-content:center;
+    transition: color 0.15s ease, transform 0.1s ease;
+  }
+  .tbtn:hover{ color: var(--amber); }
+  .tbtn:active{ transform: scale(0.92); }
+  .tbtn svg{ width:16px; height:16px; }
+  .tbtn.play{
+    width: 46px; height: 46px;
+    border: 1px solid var(--panel-line);
+    border-radius: 4px;
+    color: var(--amber);
+  }
+  .tbtn.play:hover{ background: rgba(201,133,83,0.08); border-color: var(--amber); }
+  .tbtn.play svg{ width:20px; height:20px; }
+
+  .loop-row{
+    display:flex;
+    justify-content:center;
+    padding: 16px 0 22px;
+  }
+  .loop-row button{
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    background: none;
+    border: 1px solid var(--panel-line);
+    color: var(--text-dim);
+    padding: 5px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+  }
+  .loop-row button.on{ color: var(--sage); border-color: var(--sage); }
+
+  /* ---- status bar, mimicking the neovim statusline ---- */
+  .statusline{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background: var(--panel);
+    border-top: 1px solid var(--panel-line);
+    padding: 6px 14px;
+    font-size: 10.5px;
+  }
+  .status-left{ display:flex; align-items:center; gap: 10px; }
+  .mode{
+    background: var(--statusbar);
+    color: #17140F;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 3px;
+    letter-spacing: 0.05em;
+  }
+  .status-mid{ color: var(--text-dim); }
+  .status-right{ color: var(--text-dim); display:flex; gap: 12px; }
+  .status-right .site{ color: var(--amber); }
+  .src-link{
+	    display:flex;
+	      align-items:center;
+	        gap: 5px;
+		  color: var(--text-dim);
+		    text-decoration: none;
+		      transition: color 0.15s ease;
+  }
+  .src-link:hover{ color: var(--amber); }
+</style>
+</head>
+<body>
+
+<div class="backdrop">
+  <svg viewBox="0 0 800 400" preserveAspectRatio="none">
+    <defs>
+      <linearGradient id="farG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#3A4148" stop-opacity="0.5"/>
+        <stop offset="100%" stop-color="#0E0C0B" stop-opacity="0"/>
+      </linearGradient>
+      <linearGradient id="midG" x1="0" y1="0" x2="0" y2="1">
+        <stop offset="0%" stop-color="#262A2E" stop-opacity="0.8"/>
+        <stop offset="100%" stop-color="#0E0C0B" stop-opacity="0"/>
+      </linearGradient>
+    </defs>
+    <path d="M0,220 Q100,150 220,190 T450,170 T650,200 T800,160 L800,400 L0,400 Z" fill="url(#farG)"/>
+    <path d="M0,280 Q150,210 300,250 T560,230 T800,260 L800,400 L0,400 Z" fill="url(#midG)"/>
+    <path d="M0,340 Q120,300 260,320 T520,300 T800,330 L800,400 L0,400 Z" fill="#14131A"/>
+    <line x1="640" y1="200" x2="636" y2="270" stroke="#211E1B" stroke-width="2"/>
+    <line x1="638" y1="215" x2="612" y2="205" stroke="#211E1B" stroke-width="1.5"/>
+    <line x1="638" y1="230" x2="660" y2="218" stroke="#211E1B" stroke-width="1.5"/>
+    <line x1="637" y1="245" x2="616" y2="238" stroke="#211E1B" stroke-width="1.5"/>
+  </svg>
+</div>
+
+<div class="app">
+  <div class="tabs" id="tabs"></div>
+
+  <div class="body-pad">
+    <div class="comment">findingfocus.music</div>
+    <div class="now-playing"><span class="kw" id="trackTitle">orbit study</span></div>
+    <div class="code-line" id="trackSub">d1 $ sound "bd sn"</div>
+
+    <div class="stage" id="stage"></div>
+
+    <div class="time-row">
+      <span id="curTime">0:00</span>
+      <span id="durTime">0:00</span>
+    </div>
+
+    <div class="transport">
+      <button class="tbtn" id="prevBtn" title="Previous">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+      </button>
+      <button class="tbtn play" id="playBtn" title="Play">
+        <svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+      </button>
+      <button class="tbtn" id="nextBtn" title="Next">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6v12l8.5-6z"/></svg>
+      </button>
+    </div>
+
+    <div class="loop-row">
+      <button id="loopBtn" class="on" data-mode="all">loop: all tracks</button>
+    </div>
+  </div>
+
+  <div class="statusline">
+    <div class="status-left">
+      <a href="https://tidalcycles.org" style="text-decoration: none;"><span class="mode" id="modeTag">TIDAL CYCLES</span></a>
+      <span class="status-mid" id="stateTag">paused</span>
+    </div>
+    <div class="status-right">
+      <a href="https://github.com/findingfocus/tidal" target="_blank" rel="noopener" class="src-link" title="View Source Code">
+	        <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+		  source code
+      </a>
+      <span class="site">findingfocus.dev</span>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ---------------------------------------------------------------
+   REPLACE these with your own CDN URLs (R2 / Bunny) once tracks
+   are uploaded. title/sub are just labels shown in the UI.
+--------------------------------------------------------------- */
+const tracks = [
+  { title: "orbit study",    sub: 'd1 $ sound "bd sn"',              url: "track1.mp3" },
+  { title: "glass patterns", sub: 'd1 $ n "0 2 4 7" # s "arpy"',      url: "track1.mp3" },
+  { title: "low tide",       sub: 'd1 $ jux rev $ sound "cp*2"',      url: "track1.mp3" },
+];
+
+let current = 0;
+let loopMode = "all";
+const audio = new Audio();
+audio.preload = "metadata";
+
+const playBtn = document.getElementById('playBtn');
+const playIcon = document.getElementById('playIcon');
+const prevBtn = document.getElementById('prevBtn');
+const nextBtn = document.getElementById('nextBtn');
+const loopBtn = document.getElementById('loopBtn');
+const tabsEl = document.getElementById('tabs');
+const stageEl = document.getElementById('stage');
+const curTime = document.getElementById('curTime');
+const durTime = document.getElementById('durTime');
+const trackTitle = document.getElementById('trackTitle');
+const trackSub = document.getElementById('trackSub');
+const stateTag = document.getElementById('stateTag');
+
+const BAR_COUNT = 40;
+let barHeights = Array.from({length: BAR_COUNT}, () => 30); // flat placeholder until real waveform loads
+let audioCtx = null;
+let waveformRequestId = 0; // guards against a slow decode overwriting a newer track's bars
+
+function renderTabs(){
+  tabsEl.innerHTML = "";
+  tracks.forEach((t, i) => {
+    const tab = document.createElement('div');
+    tab.className = 'tab' + (i === current ? ' active' : '');
+    tab.innerHTML = `<span class="dot"></span>${t.title.replace(/\s+/g,'_')}.wav`;
+    tab.addEventListener('click', () => loadTrack(i, !audio.paused));
+    tabsEl.appendChild(tab);
+  });
+}
+
+function renderStage(){
+  stageEl.innerHTML = "";
+  barHeights.forEach((h) => {
+    const bar = document.createElement('div');
+    bar.className = 'bar';
+    bar.style.height = h + '%';
+    stageEl.appendChild(bar);
+  });
+}
+
+// Decode the actual audio file and compute a real peak-per-bucket waveform.
+async function loadWaveform(url){
+  const requestId = ++waveformRequestId;
+  if (!url) { barHeights = Array.from({length: BAR_COUNT}, () => 6); renderStage(); return; }
+  try {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    const res = await fetch(url);
+    const arrayBuffer = await res.arrayBuffer();
+    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    if (requestId !== waveformRequestId) return; // a newer track loaded before this finished
+
+    const raw = audioBuffer.getChannelData(0); // first channel is enough for a visual waveform
+    const blockSize = Math.floor(raw.length / BAR_COUNT);
+    const peaks = [];
+    for (let i = 0; i < BAR_COUNT; i++) {
+      const start = i * blockSize;
+      let max = 0;
+      for (let j = 0; j < blockSize; j++) {
+        const abs = Math.abs(raw[start + j] || 0);
+        if (abs > max) max = abs;
+      }
+      peaks.push(max);
+    }
+    const loudest = Math.max(...peaks, 0.01);
+    barHeights = peaks.map(p => 6 + (p / loudest) * 88); // normalize to 6%–94% bar height
+    renderStage();
+  } catch (err) {
+    // e.g. file not found yet, or browser blocked the fetch — fall back to a flat bar so the UI still works
+    barHeights = Array.from({length: BAR_COUNT}, () => 6);
+    if (requestId === waveformRequestId) renderStage();
+  }
+}
+
+function formatTime(sec){
+  if (!isFinite(sec)) return "0:00";
+  const m = Math.floor(sec / 60);
+  const s = Math.floor(sec % 60).toString().padStart(2, '0');
+  return `${m}:${s}`;
+}
+
+function loadTrack(i, autoplay){
+  current = i;
+  const t = tracks[current];
+  audio.src = t.url || "";
+  trackTitle.textContent = t.title;
+  trackSub.textContent = t.sub;
+  renderTabs();
+  loadWaveform(t.url);
+  if (autoplay) audio.play().catch(()=>{});
+}
+
+// Click-to-seek: figure out what fraction of the stage width was clicked,
+// then jump the audio to that fraction of its duration.
+stageEl.addEventListener('click', (e) => {
+  if (!audio.duration || !isFinite(audio.duration)) return;
+  const rect = stageEl.getBoundingClientRect();
+  const pct = Math.min(Math.max((e.clientX - rect.left) / rect.width, 0), 1);
+  audio.currentTime = pct * audio.duration;
+});
+stageEl.style.cursor = 'pointer';
+
+audio.addEventListener('timeupdate', () => {
+  const pct = audio.duration ? audio.currentTime / audio.duration : 0;
+  const litCount = Math.floor(pct * BAR_COUNT);
+  [...stageEl.children].forEach((bar, i) => {
+    bar.classList.toggle('played', i < litCount);
+  });
+  curTime.textContent = formatTime(audio.currentTime);
+  durTime.textContent = formatTime(audio.duration);
+});
+
+audio.addEventListener('ended', () => {
+  if (loopMode === 'one') {
+    audio.currentTime = 0;
+    audio.play();
+  } else {
+    loadTrack((current + 1) % tracks.length, true);
+  }
+});
+
+playBtn.addEventListener('click', () => {
+  if (audio.paused) {
+    if (!audio.src) loadTrack(current, false);
+    audio.play().catch(()=>{});
+  } else {
+    audio.pause();
+  }
+});
+audio.addEventListener('play', () => {
+  playIcon.outerHTML = '<svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
+  stateTag.textContent = 'playing > ' + tracks[current].title.replace(/\s+/g,'_') + '.wav';
+});
+audio.addEventListener('pause', () => {
+  document.getElementById('playIcon').outerHTML = '<svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
+  stateTag.textContent = 'paused';
+});
+
+prevBtn.addEventListener('click', () => {
+  loadTrack((current - 1 + tracks.length) % tracks.length, !audio.paused);
+});
+nextBtn.addEventListener('click', () => {
+  loadTrack((current + 1) % tracks.length, !audio.paused);
+});
+
+loopBtn.addEventListener('click', () => {
+  loopMode = loopMode === 'all' ? 'one' : 'all';
+  loopBtn.textContent = loopMode === 'all' ? 'loop: all tracks' : 'loop: this track';
+  loopBtn.classList.toggle('on', true);
+});
+
+renderTabs();
+renderStage();
+loadTrack(0, false);
+</script>
+
+</body>
+</html>
