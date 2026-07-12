@@ -6,6 +6,7 @@
 <title>findingfocus.music</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%2317140F'/%3E%3Cg fill='%23E8B88A'%3E%3Crect x='58' y='20' width='7' height='58' rx='2'/%3E%3Cellipse cx='49.5' cy='73' rx='18' ry='13.8' transform='rotate(-35 49.5 73)'/%3E%3C/g%3E%3C/svg%3E">
 <style>
   :root{
     --bg: #0E0C0B;
@@ -41,10 +42,11 @@
 	    position: fixed; inset: 0;
 	      z-index: 0;
 	        background-image: 
-			    linear-gradient(180deg, rgba(14,20,16,0.88) 0%, rgba(14,18,15,0.93) 100%),
+			    linear-gradient(180deg, rgba(14,20,16,0.90) 0%, rgba(14,18,15,0.93) 100%),
 		    url('overworld.webp');
-		      background-size: cover;
-		        background-position: center;
+		      background-size: 150% auto;
+		        background-position: 10% 40%;
+			  background-repeat: no-repeat;
   }
 
   .app{
@@ -54,8 +56,6 @@
     max-width: 560px;
     background: rgba(14,12,11,0.72);
     border: 1px solid var(--panel-line);
-    border-radius: 6px;
-    backdrop-filter: blur(6px);
     overflow: hidden;
     box-shadow: 0 30px 80px rgba(0,0,0,0.5);
   }
@@ -108,7 +108,7 @@
   .stage{
     display:flex;
     align-items:flex-end;
-    gap: 4px;
+    gap: 2px;
     height: 84px;
     margin-bottom: 22px;
     padding: 0 2px;
@@ -207,6 +207,19 @@
 		      transition: color 0.15s ease;
   }
   .src-link:hover{ color: var(--amber); }
+  .volume-row{
+	    display:flex;
+	      align-items:center;
+	        gap: 6px;
+		  color: var(--text-dim);
+		    padding-bottom: 20px;
+  }
+  .volume-row input[type="range"]{
+	    width: 120px;
+	      height: 6px;
+	        accent-color: var(--amber);
+		  cursor: pointer;
+  }
   @media (max-width: 480px){
 	    body{ padding: 10px; }
 	      .app{ max-width: 100%; }
@@ -215,7 +228,27 @@
 		    .tab{ padding: 9px 12px; }
 		      .stage{ gap: 3px; }
 		        .transport{ gap: 16px; }
+			  .volume-row{ display: none; }
+			    .state-track{ display: none; }
   }	
+  @media (max-width: 900px){
+	  .backdrop{
+		  background-size: cover;
+		  background-position: center;
+	  }
+  }
+  .also-building{
+	    text-align: center;
+	      font-size: 10.5px;
+	        color: var(--text-dim);
+		  padding: 10px 0 10px;
+  }
+  .also-building a{
+	    color: var(--text-dim);
+	      text-decoration: none;
+	        border-bottom: 1px dotted var(--panel-line);
+  }
+  .also-building a:hover{ color: var(--amber); border-color: var(--amber); }
 </style>
 </head>
 <body>
@@ -225,7 +258,7 @@
   <div class="tabs" id="tabs"></div>
 
   <div class="body-pad">
-    <div class="comment">findingfocus.music</div>
+    <div class="comment">findingfocus.music <span id="trackCount"></span></div>
     <div class="now-playing"><span class="kw" id="trackTitle">orbit study</span></div>
     <div class="code-line" id="trackSub">d1 $ sound "bd sn"</div>
 
@@ -234,6 +267,11 @@
     <div class="time-row">
       <span id="curTime">0:00</span>
       <span id="durTime">0:00</span>
+    </div>
+
+    <div class="volume-row">
+	      <svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1-3.29-2.5-4.03v8.05c1.5-.73 2.5-2.25 2.5-4.02z"/></svg>
+	        <input type="range" id="volumeSlider" min="0" max="1" step="0.01" value="1">
     </div>
 
     <div class="transport">
@@ -261,11 +299,12 @@
     <div class="status-right">
       <a href="https://github.com/findingfocus/tidal" target="_blank" rel="noopener" class="src-link" title="View Source Code">
 	        <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-		  source
+		  source code
       </a>
-      <span class="site">findingfocus.dev</span>
+      <span class="site">findingfocus.music</span>
     </div>
   </div>
+  <div class="also-building">also building: <a href="https://tashio.dev" target="_blank" rel="noopener">tashio.dev</a> &middot; <a href="https://findingfocus.gg" target="_blank" rel="noopener">findingfocus.gg</a></div>
 </div>
 
 <script>
@@ -274,8 +313,8 @@
    are uploaded. title/sub are just labels shown in the UI.
 --------------------------------------------------------------- */
 const tracks = [
-  { title: "orbit study",    sub: 'd1 $ sound "bd sn"',              url: "track1.mp3" },
-  { title: "glass patterns", sub: 'd1 $ n "0 2 4 7" # s "arpy"',      url: "track1.mp3" },
+  { title: "orbit study",    sub: 'd1 $ sound "bd sn"',              url: "track1.mp3", peaks: [94, 87.36, 76.97, 68.37, 56.53, 55.52, 57.46, 56.66, 73.89, 84.46, 90.49, 89.29, 87.75, 70.55, 54.39, 45.77, 39.13, 35.72, 59.78, 72.43, 80.55, 86.64, 89.93, 67.72, 49.36, 39.84, 29.02, 22.83, 50.62, 64.89, 70.32, 76.2, 80.55, 65.5, 56.02, 48.58, 37.67, 34.73, 40.87, 43.64, 45.91, 55, 58.54, 44.1, 36.52, 36.94, 27.1, 26.82, 39.27, 48.72, 56.97, 64.92, 71.47, 70.93, 68.29, 59.38, 52.37, 50.55, 49.73, 49.21, 50.45, 48.93, 51.73, 52.1, 52.75, 58.14, 66.22, 68.14, 64.69, 61.72, 57.84, 49.88, 42.75, 40.13, 37.85, 39.67, 38.46, 21.66, 7.5, 6] },
+	{ title: "glass patterns", sub: 'd1 $ n "<c g> d(3,8,2) e" # sound "superpiano" # legato 4 # cutoff 300',      url: "track2.mp3", peaks: [47.49, 59.79, 39.6, 51.97, 32.79, 60.58, 50.99, 77.74, 64.75, 53.44, 52.28, 42.12, 50.9, 49.56, 73.34, 46.36, 64.06, 19.78, 43.44, 17.51, 67.23, 53.94, 94, 59.84, 70.31, 32.23, 38.06, 28.76, 61.58, 66.3, 74.89, 79.32, 48.14, 46.13, 25.3, 43.63, 30.16, 70.44, 43.85, 72.56, 32.09, 60.99, 37.62, 70.78, 59.97, 85.23, 54.91, 55.81, 37.88, 40.95, 45.88, 63.36, 83.57, 65.56, 69.67, 28.41, 36.42, 6, 46.92, 36.99, 88.98, 58.78, 83.59, 41.96, 53.3, 32.82, 58.59, 50.86, 77.85, 64.65, 52.88, 51.94, 41.5, 50.2, 48.78, 73.17, 45.24, 62.49, 42.95, 50.39] },
   { title: "low tide",       sub: 'd1 $ jux rev $ sound "cp*2"',      url: "track1.mp3" },
 ];
 
@@ -297,7 +336,7 @@ const trackTitle = document.getElementById('trackTitle');
 const trackSub = document.getElementById('trackSub');
 const stateTag = document.getElementById('stateTag');
 
-const BAR_COUNT = 40;
+const BAR_COUNT = 80;
 let barHeights = Array.from({length: BAR_COUNT}, () => 30); // flat placeholder until real waveform loads
 let audioCtx = null;
 let waveformRequestId = 0; // guards against a slow decode overwriting a newer track's bars
@@ -307,7 +346,7 @@ function renderTabs(){
   tracks.forEach((t, i) => {
     const tab = document.createElement('div');
     tab.className = 'tab' + (i === current ? ' active' : '');
-    tab.innerHTML = `<span class="dot"></span>${t.title.replace(/\s+/g,'_')}.wav`;
+    tab.innerHTML = `<span class="dot"></span>${t.title.replace(/\s+/g,'_')}.mp3`;
     tab.addEventListener('click', () => loadTrack(i, !audio.paused));
     tabsEl.appendChild(tab);
   });
@@ -323,38 +362,25 @@ function renderStage(){
   });
 }
 
-// Decode the actual audio file and compute a real peak-per-bucket waveform.
-async function loadWaveform(url){
-  const requestId = ++waveformRequestId;
-  if (!url) { barHeights = Array.from({length: BAR_COUNT}, () => 6); renderStage(); return; }
-  try {
-    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-    const res = await fetch(url);
-    const arrayBuffer = await res.arrayBuffer();
-    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
-    if (requestId !== waveformRequestId) return; // a newer track loaded before this finished
-
-    const raw = audioBuffer.getChannelData(0); // first channel is enough for a visual waveform
-    const blockSize = Math.floor(raw.length / BAR_COUNT);
-    const peaks = [];
-    for (let i = 0; i < BAR_COUNT; i++) {
-      const start = i * blockSize;
-      let max = 0;
-      for (let j = 0; j < blockSize; j++) {
-        const abs = Math.abs(raw[start + j] || 0);
-        if (abs > max) max = abs;
-      }
-      peaks.push(max);
-    }
-    const loudest = Math.max(...peaks, 0.01);
-    barHeights = peaks.map(p => 6 + (p / loudest) * 88); // normalize to 6%–94% bar height
-    renderStage();
-  } catch (err) {
-    // e.g. file not found yet, or browser blocked the fetch — fall back to a flat bar so the UI still works
-    barHeights = Array.from({length: BAR_COUNT}, () => 6);
-    if (requestId === waveformRequestId) renderStage();
-  }
+// Construct waveform based on peaks array
+function loadWaveform(track){
+	  barHeights = track.peaks || Array.from({length: BAR_COUNT}, () => 6);
+	  renderStage();
 }
+
+const volumeSlider = document.getElementById('volumeSlider');
+volumeSlider.addEventListener('input', () => {
+	  audio.volume = volumeSlider.value;
+});
+
+document.addEventListener('keydown', (e) => {
+	  if (e.code === 'Space' && e.target.tagName !== 'INPUT') {
+		      e.preventDefault();
+		      playBtn.click();
+		    }
+});
+
+document.getElementById('trackCount').textContent = `[${current + 1}/${tracks.length}]`;
 
 function formatTime(sec){
   if (!isFinite(sec)) return "0:00";
@@ -364,14 +390,15 @@ function formatTime(sec){
 }
 
 function loadTrack(i, autoplay){
-  current = i;
-  const t = tracks[current];
-  audio.src = t.url || "";
-  trackTitle.textContent = t.title;
-  trackSub.textContent = t.sub;
-  renderTabs();
-  loadWaveform(t.url);
-  if (autoplay) audio.play().catch(()=>{});
+	  current = i;
+	  const t = tracks[current];
+	  audio.src = t.url || "";
+	  trackTitle.textContent = t.title;
+	  trackSub.textContent = t.sub;
+	  document.getElementById('trackCount').textContent = `[${current + 1}/${tracks.length}]`;
+	  renderTabs();
+	  loadWaveform(t);
+	  if (autoplay) audio.play().catch(()=>{});
 }
 
 // Click-to-seek: figure out what fraction of the stage width was clicked,
@@ -412,8 +439,8 @@ playBtn.addEventListener('click', () => {
   }
 });
 audio.addEventListener('play', () => {
-  playIcon.outerHTML = '<svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
-  stateTag.textContent = 'playing > ' + tracks[current].title.replace(/\s+/g,'_') + '.wav';
+	  document.getElementById('playIcon').outerHTML = '<svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>';
+	  stateTag.innerHTML = 'playing <span class="state-track">&gt; ' + tracks[current].title.replace(/\s+/g,'_') + '.wav</span>';
 });
 audio.addEventListener('pause', () => {
   document.getElementById('playIcon').outerHTML = '<svg id="playIcon" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>';
