@@ -37,13 +37,15 @@
     overflow: hidden;
   }
 
-  /* ---- ink-wash mountain backdrop ---- */
   .backdrop{
-    position: fixed; inset: 0;
-    z-index: 0;
-    background: linear-gradient(180deg, #100E0D 0%, #17151A 55%, #0E0C0B 100%);
+	    position: fixed; inset: 0;
+	      z-index: 0;
+	        background-image: 
+			    linear-gradient(180deg, rgba(14,20,16,0.88) 0%, rgba(14,18,15,0.93) 100%),
+		    url('overworld.webp');
+		      background-size: cover;
+		        background-position: center;
   }
-  .backdrop svg{ position:absolute; bottom:0; left:0; width:100%; height:70%; }
 
   .app{
     position: relative;
@@ -205,31 +207,19 @@
 		      transition: color 0.15s ease;
   }
   .src-link:hover{ color: var(--amber); }
+  @media (max-width: 480px){
+	    body{ padding: 10px; }
+	      .app{ max-width: 100%; }
+	        .body-pad{ padding: 22px 16px 16px; }
+		  .tabs{ font-size: 11px; }
+		    .tab{ padding: 9px 12px; }
+		      .stage{ gap: 3px; }
+		        .transport{ gap: 16px; }
+  }	
 </style>
 </head>
 <body>
-
-<div class="backdrop">
-  <svg viewBox="0 0 800 400" preserveAspectRatio="none">
-    <defs>
-      <linearGradient id="farG" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#3A4148" stop-opacity="0.5"/>
-        <stop offset="100%" stop-color="#0E0C0B" stop-opacity="0"/>
-      </linearGradient>
-      <linearGradient id="midG" x1="0" y1="0" x2="0" y2="1">
-        <stop offset="0%" stop-color="#262A2E" stop-opacity="0.8"/>
-        <stop offset="100%" stop-color="#0E0C0B" stop-opacity="0"/>
-      </linearGradient>
-    </defs>
-    <path d="M0,220 Q100,150 220,190 T450,170 T650,200 T800,160 L800,400 L0,400 Z" fill="url(#farG)"/>
-    <path d="M0,280 Q150,210 300,250 T560,230 T800,260 L800,400 L0,400 Z" fill="url(#midG)"/>
-    <path d="M0,340 Q120,300 260,320 T520,300 T800,330 L800,400 L0,400 Z" fill="#14131A"/>
-    <line x1="640" y1="200" x2="636" y2="270" stroke="#211E1B" stroke-width="2"/>
-    <line x1="638" y1="215" x2="612" y2="205" stroke="#211E1B" stroke-width="1.5"/>
-    <line x1="638" y1="230" x2="660" y2="218" stroke="#211E1B" stroke-width="1.5"/>
-    <line x1="637" y1="245" x2="616" y2="238" stroke="#211E1B" stroke-width="1.5"/>
-  </svg>
-</div>
+<div class="backdrop"></div>
 
 <div class="app">
   <div class="tabs" id="tabs"></div>
@@ -265,13 +255,13 @@
 
   <div class="statusline">
     <div class="status-left">
-      <a href="https://tidalcycles.org" style="text-decoration: none;"><span class="mode" id="modeTag">TIDAL CYCLES</span></a>
+      <a href="https://tidalcycles.org" style="text-decoration: none;"><span class="mode" id="modeTag">TIDAL</span></a>
       <span class="status-mid" id="stateTag">paused</span>
     </div>
     <div class="status-right">
       <a href="https://github.com/findingfocus/tidal" target="_blank" rel="noopener" class="src-link" title="View Source Code">
 	        <svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-		  source code
+		  source
       </a>
       <span class="site">findingfocus.dev</span>
     </div>
