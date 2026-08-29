@@ -3,6 +3,7 @@
 	import type WSType from 'wavesurfer.js';
 	import { renderProfessionalWave, setAuthoredPeaks } from './render-wave';
 	import { tracks } from './tracks';
+	import { THEME } from './theme';
 
 	let waveformEl!: HTMLDivElement;
 	let playBtn!: HTMLButtonElement;
@@ -107,9 +108,9 @@
 				const WaveSurfer = WSU.default;
 				ws = WaveSurfer.create({
 					container: waveformEl,
-					waveColor: '#2A241C',
-					progressColor: '#C98553',
-					cursorColor: 'rgba(232,220,196,0.5)',
+					waveColor: THEME.waveBase,
+					progressColor: THEME.accent,
+					cursorColor: THEME.cursor,
 					cursorWidth: 1,
 					barWidth: 2,
 					barGap: 1,
@@ -254,8 +255,8 @@
 		<span class="status-mid">{@html statusHtml}</span>
 	</div>
 	<div class="status-right">
-		<a href="https://github.com/findingfocus/tidal" target="_blank" rel="noopener" class="src-link" title="View Source Code">
-			<svg viewBox="0 0 16 16" width="13" height="13" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
+		<a href="https://findingfocus.io/findingfocus/tidal" target="_blank" rel="noopener" class="src-link" title="View Source Code">
+			<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M16.777 0c1.602 0 2.9 1.299 2.9 2.9 0 1.602-1.298 2.9-2.9 2.9-1.085 0-2.031-.596-2.529-1.479h-1.338c-2.333 0-4.228 1.872-4.265 4.195v2.118a7.076 7.076 0 0 1 4.148-1.42h1.455c.497-.883 1.444-1.479 2.529-1.479 1.602 0 2.9 1.299 2.9 2.9 0 1.602-1.298 2.9-2.9 2.9-1.085 0-2.031-.596-2.529-1.479h-1.338c-2.333 0-4.228 1.872-4.265 4.195v2.319a2.906 2.906 0 0 1 1.479 2.529c0 1.602-1.298 2.9-2.9 2.9-1.602 0-2.9-1.298-2.9-2.9 0-1.085.596-2.032 1.479-2.53v-9.982c0-3.887 3.12-7.045 6.992-7.108h1.455C14.746.596 15.692 0 16.777 0zM7.223 19.905a1.195 1.195 0 0 0 0 2.39 1.195 1.195 0 0 0 0-2.39zm9.554-10.465a1.195 1.195 0 0 0 0 2.39 1.195 1.195 0 0 0 0-2.39zm0-7.734a1.195 1.195 0 0 0 0 2.39 1.195 1.195 0 0 0 0-2.39z"/></svg>
 			source code
 		</a>
 		<span class="site">findingfocus.music</span>

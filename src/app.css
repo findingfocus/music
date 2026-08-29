@@ -8,6 +8,9 @@
   --text: #E8DCC4;
   --text-dim: #8C8172;
   --amber: #C98553;
+  --amber-04: rgba(201,133,83,0.04);
+  --amber-06: rgba(201,133,83,0.06);
+  --amber-08: rgba(201,133,83,0.08);
   --sage: #7C9585;
   --plum: #8E7093;
   --statusbar: #D8C9A0;
@@ -82,7 +85,7 @@ body{
   transition: all 0.15s ease;
 }
 .tab .dot{ width:6px; height:6px; border-radius:50%; background: var(--panel-line); }
-.tab.active{ color: var(--amber); background: rgba(201,133,83,0.06); }
+.tab.active{ color: var(--amber); background: var(--amber-06); }
 .tab.active .dot{ background: var(--amber); box-shadow: 0 0 6px var(--amber); }
 .tab:hover{ color: var(--text); }
 
@@ -182,7 +185,7 @@ body{
 .waveform{
   height: 98px;
   margin-bottom: 22px;
-  background: rgba(201,133,83,0.04);
+  background: var(--amber-04);
   border: 1px solid var(--panel-line);
   border-radius: 6px;
   padding: 6px 2px;
@@ -223,7 +226,7 @@ body{
   border-radius: 4px;
   color: var(--amber);
 }
-.tbtn.play:hover{ background: rgba(201,133,83,0.08); border-color: var(--amber); }
+.tbtn.play:hover{ background: var(--amber-08); border-color: var(--amber); }
 .tbtn.play svg{ width:20px; height:20px; }
 
 .loop-row{
