@@ -1,0 +1,28 @@
+service: ffmusic
+
+image: findingfocusdev/ffmusic
+
+servers:
+  web:
+    - 216.128.140.9
+
+proxy:
+  ssl: true
+  host: findingfocus.music
+  app_port: 3000
+  healthcheck:
+    path: /
+    interval: 3
+    timeout: 30
+
+registry:
+  username: findingfocusdev
+  password:
+    - KAMAL_REGISTRY_PASSWORD
+
+builder:
+  arch: amd64
+  driver: docker
+
+ssh:
+  user: findingfocus

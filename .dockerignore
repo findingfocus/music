@@ -1,0 +1,16 @@
+node_modules
+/.svelte-kit
+/build
+.git
+.DS_Store
+tracks
+*.mp3
+*.wav
+*.ogg
+*.flac
+*.m4a
+*.opus
+.env
+.env.*
+docker-compose.yml
+config
