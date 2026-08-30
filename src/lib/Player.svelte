@@ -178,7 +178,7 @@
 				if (loud > wavePeak) wavePeak = wavePeak + (loud - wavePeak) * 0.4;
 				else wavePeak = wavePeak * 0.995;
 				const scale = wavePeak > 0.02 ? 1.05 / wavePeak : 1;
-				const response = analyser ? 0.08 : 0.2;
+				const response = analyser ? 0.08 : 0.05;
 				for (let i = 0; i < bars; i++) {
 					const pv = targets[Math.max(0, i - 1)];
 					const nx = targets[Math.min(bars - 1, i + 1)];
