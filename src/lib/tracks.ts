@@ -1,13 +1,19 @@
 export interface Track {
+	id: string;
 	title: string;
 	sub: string[];
 	url: string;
 	peaks: number[];
 	duration: number;
+	date?: string;
+	index?: number;
+	sourceUrl?: string;
+	source?: string;
 }
 
 // Set this to your R2 public bucket URL, e.g. https://pub-<bucketId>.r2.dev
 const R2_BASE = 'https://media.findingfocus.music';
+const TRACKS_JSON = `${R2_BASE}/tracks.json`;
 
 const ORBIT_PEAKS = [
 	94, 87.36, 76.97, 68.37, 56.53, 55.52, 57.46, 56.66, 73.89, 84.46, 90.49, 89.29, 87.75, 70.55,
@@ -27,8 +33,9 @@ const GLASS_PEAKS = [
 	52.88, 51.94, 41.5, 50.2, 48.78, 73.17, 45.24, 62.49, 42.95, 50.39
 ];
 
-export const tracks: Track[] = [
+export const SEED_TRACKS: Track[] = [
 	{
+		id: 'seed-orbit',
 		title: 'orbit study',
 		sub: ['d1 $ sound "bd sn"'],
 		url: `${R2_BASE}/track1.mp3`,
@@ -36,6 +43,7 @@ export const tracks: Track[] = [
 		duration: 14.408
 	},
 	{
+		id: 'seed-glass',
 		title: 'glass patterns',
 		sub: [
 			'd1 $ slow 8 $ jux rev $ off 0.25 (|- n 12) $ off 0.125 (|+ n 7) $ n "<c g> <a ~> d(3,8,2) e" # sound "superpiano" # legato 4 # cutoff 300',
@@ -46,6 +54,7 @@ export const tracks: Track[] = [
 		duration: 298.472
 	},
 	{
+		id: 'seed-low-tide',
 		title: 'low tide',
 		sub: [
 			'd1 $ slow 8 $ jux rev $ off 0.25 (|- n 12) $ n "c e g" # sound "piano" # legato 3',
@@ -74,3 +83,36 @@ export const tracks: Track[] = [
 		duration: 14.408
 	}
 ];
+
+// remote (newest first) wins; seeds not yet published are appended at the end.
+export function mergeTracks(remote: Track[], seeds: Track[]): Track[] {
+	const seen = new Set<string>();
+	const out: Track[] = [];
+	for (const t of [...remote, ...seeds]) {
+		if (seen.has(t.id)) continue;
+		seen.add(t.id);
+		out.push(t);
+	}
+	return out;
+}
+
+// Fetched at runtime so a nightly publish needs zero deploys. Falls back to seeds.
+export async function loadTracks(): Promise<Track[]> {
+	try {
+		const ctrl = new AbortController();
+		const timer = setTimeout(() => ctrl.abort(), 6000);
+		try {
+			const res = await fetch(TRACKS_JSON, { signal: ctrl.signal, cache: 'no-store' });
+			clearTimeout(timer);
+			if (!res.ok) throw new Error(`tracks.json ${res.status}`);
+			const remote: unknown = await res.json();
+			if (!Array.isArray(remote)) throw new Error('tracks.json is not an array');
+			return mergeTracks(remote as Track[], SEED_TRACKS);
+		} finally {
+			clearTimeout(timer);
+		}
+	} catch (e) {
+		console.warn('loadTracks fallback to seeds:', e);
+		return SEED_TRACKS;
+	}
+}

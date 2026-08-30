@@ -2,7 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import type WSType from 'wavesurfer.js';
 	import { renderProfessionalWave, setAuthoredPeaks } from './render-wave';
-	import { tracks } from './tracks';
+	import { loadTracks, SEED_TRACKS, type Track } from './tracks';
 	import { THEME } from './theme';
 
 	let waveformEl!: HTMLDivElement;
@@ -23,6 +23,7 @@
 	let overlayOpen = $state(false);
 	let codeCopied = $state(false);
 	let volume = $state(1);
+	let tracks = $state<Track[]>(SEED_TRACKS);
 
 	const track = $derived(tracks[current]);
 	const trackCountLabel = $derived(`[${current + 1}/${tracks.length}]`);
@@ -101,6 +102,11 @@
 	};
 
 	onMount(() => {
+		loadTracks().then((next) => {
+			if (disposed || next.length === 0) return;
+			tracks = next;
+			if (ws) loadTrack(Math.min(current, next.length - 1), ws.isPlaying());
+		});
 		(async () => {
 			try {
 				const WSU = await import('wavesurfer.js');
@@ -175,7 +181,7 @@
 </script>
 
 <div class="tabs">
-	{#each tracks as t, i (t.title)}
+	{#each tracks as t, i (t.id)}
 		<button
 			type="button"
 			class="tab"
@@ -189,7 +195,12 @@
 
 <div class="body-pad">
 	<div class="comment">findingfocus.music <span>{trackCountLabel}</span></div>
-	<div class="now-playing"><span class="kw">{track.title}</span></div>
+	<div class="now-playing">
+		<span class="kw">{track.title}</span>
+		{#if track.date}
+			<span class="date">({track.date})</span>
+		{/if}
+	</div>
 	<button type="button" class="code-line" onclick={openOverlay}>{track.sub[0]}</button>
 
 	<div class="code-overlay" class:show={overlayOpen}>
