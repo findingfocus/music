@@ -116,7 +116,7 @@
 
 	function drawVisualizer() {
 		const canvas = visualizerEl;
-		if (canvas && analyser && visualizerOn) {
+		if (canvas && visualizerOn) {
 			const rect = canvas.getBoundingClientRect();
 			const ratio = window.devicePixelRatio || 1;
 			if (canvas.width !== Math.round(rect.width * ratio) || canvas.height !== Math.round(rect.height * ratio)) {
@@ -126,8 +126,6 @@
 			const ctx = canvas.getContext('2d');
 			if (ctx) {
 				ctx.clearRect(0, 0, canvas.width, canvas.height);
-				const tdata = new Uint8Array(analyser.frequencyBinCount * 2);
-				analyser.getByteTimeDomainData(tdata);
 				const w = canvas.width;
 				const h = canvas.height;
 				const mid = h / 2;
@@ -139,17 +137,32 @@
 				}
 				const slot = w / bars;
 				const barWidth = Math.max(1 * ratio, slot * 0.4);
-				const step = tdata.length / bars;
 				const targets = new Array(bars);
-				for (let i = 0; i < bars; i++) {
-					const from = Math.floor(i * step);
-					const to = Math.min(tdata.length, Math.floor((i + 1) * step));
-					let s = 0;
-					for (let j = from; j < to; j++) s += tdata[j];
-					const raw = Math.abs((s / (to - from) - 128) / 128);
-					const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
-					const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
-					targets[i] = playing ? Math.pow(raw, 0.8) * taper : 0;
+				if (analyser) {
+					const tdata = new Uint8Array(analyser.frequencyBinCount * 2);
+					analyser.getByteTimeDomainData(tdata);
+					const step = tdata.length / bars;
+					for (let i = 0; i < bars; i++) {
+						const from = Math.floor(i * step);
+						const to = Math.min(tdata.length, Math.floor((i + 1) * step));
+						let s = 0;
+						for (let j = from; j < to; j++) s += tdata[j];
+						const raw = Math.abs((s / (to - from) - 128) / 128);
+						const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
+						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
+						targets[i] = playing ? Math.pow(raw, 0.8) * taper : 0;
+					}
+				} else {
+					const peaks = track?.peaks ?? [];
+					const duration = track?.duration || 1;
+					const progress = Math.min(1, Math.max(0, (ws?.getCurrentTime() ?? 0) / duration));
+					const offset = Math.floor(progress * peaks.length);
+					for (let i = 0; i < bars; i++) {
+						const peak = peaks[(offset + Math.floor((i / bars) * peaks.length)) % (peaks.length || 1)] ?? 0;
+						const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
+						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
+						targets[i] = playing ? Math.pow(peak / 100, 0.8) * taper : 0;
+					}
 				}
 				const loud = Math.max(...targets);
 				if (loud > wavePeak) wavePeak = wavePeak + (loud - wavePeak) * 0.4;
