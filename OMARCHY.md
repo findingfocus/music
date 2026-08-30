@@ -75,7 +75,7 @@ rclone lsl ffmedia:findingfocus-music   # lists bucket contents
 
 ### 5. Test recording from SuperCollider
 
-Paste into sclang while SuperDirt is running (any d-pattern works). Two blocks, run by cursor + **Ctrl+Enter** (Linux): **REC START** allocates a write buffer and starts writing the SC output mix to RAM, **REC STOP** dumps the buffer to `~/recordings/<stamp>.raw.wav` — then `trim-take` cuts the silent tail off so the file is exactly your take. The recorder is a manual `DiskOut` synth (placed at the root tail so it reads the finished mix — no `Server.record`/`Recorder` machinery). Since the write buffer is zero-filled before the take, the part after your STOP is guaranteed silence and `trim-take` finds the exact end.
+Paste into sclang while SuperDirt is running (any d-pattern works). Two blocks, run by cursor + **Ctrl+Enter** (Linux): **REC START** opens a `~/recordings/<stamp>.wav` and starts a `DiskOut` synth that streams the SC output mix straight to disk in real time; **REC STOP** frees the synth, finalizing the file. The file on disk is exactly the take — no buffers, no trims, no length bookkeeping.
 
 Start exactly on a downbeat; stop a touch early, just before the next downbeat after a whole number of cycles (being late clips the next downbeat transient).
 
@@ -83,45 +83,47 @@ Start exactly on a downbeat; stop a touch early, just before the next downbeat a
 // REC START — Ctrl+Enter a moment before (or exactly on) a downbeat
 (
 var numChans = 2;
-var maxLen = 240;   // <-- max take length, seconds (also the RAM cap)
 s.waitForBoot {
-  var dir, buf, recNode;
-  if (~recBuf.notNil) {
+  var dir, path, sf, buf, recNode;
+  if (~recNode.notNil) {
     "recorder already running — STOP first".postln;
   } {
     dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
-    buf = Buffer.alloc(s, (s.sampleRate * maxLen).asInteger, numChans);
+    path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
+    sf = SoundFile.new;
+    sf.sampleRate = s.sampleRate;
+    sf.numChannels = numChans;   // WAVE + int16 by default
+    sf.openWrite(path);
+    buf = Buffer.alloc(s, 65536, numChans);   // disk-streaming buffer, not the take
     s.sync;
-    SynthDef(\ffdiskrec, { |buffer|
-      DiskOut.ar(buffer, In.ar(0, numChans))
+    SynthDef(\ffdiskrec, { |buffer, outfile|
+      DiskOut.ar(buffer, In.ar(0, numChans), outfile)
     }).add;
     s.sync;
-    recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
-    ~recBuf = buf;
+    recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf, \outfile, sf]);
     ~recNode = recNode;
-    "REC ON (max %s s)".format(maxLen).postln;
+    ~recSF = sf;
+    ~recPath = path;
+    "REC ON -> %".format(path).postln;
   };
 };
 )
 ```
 
 ```supercollider
-// REC STOP — Ctrl+Enter just before the next downbeat, then trim-take
+// REC STOP — Ctrl+Enter just before the next downbeat
 (
 s.waitForBoot {
-  var dir, path;
-  if (~recBuf.isNil) {
+  if (~recNode.isNil) {
     "no recorder running".postln;
   } {
-    dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
-    path = (dir +/+ (Date.getDate.stamp ++ ".raw.wav")).fullPath;
-    ~recNode.free;
+    ~recNode.free;   // flushes + finalizes the file
     s.sync;
-    ~recBuf.write(path, "WAVE", "int16");
-    ~recBuf.free;
-    ~recBuf = nil;
+    ~recSF.close;
     ~recNode = nil;
-    "STOP -> % (raw; run trim-take)".format(path).postln;
+    ~recSF = nil;
+    "STOP -> % (exact take)".format(~recPath).postln;
+    ~recPath = nil;
   };
 };
 )
@@ -130,21 +132,16 @@ s.waitForBoot {
 Verify the file is loud, not silent:
 
 ```bash
-ffmpeg -i ~/recordings/*.raw.wav -af volumedetect -f null - 2>&1 | grep -E "mean_volume|max_volume"
+ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_volume|max_volume"
 ```
 
-`max_volume` should be something like `-1.0 dB`, not `-91 dB`. Then trim the silent tail away so the file is exactly your take (and your loop boundary, since the audio ends at the hard stop just before the next downbeat):
-
-```bash
-~/bin/trim-take.sh
-```
-
-...which writes `~/recordings/<stamp>.wav` (the `.raw.wav` sibling without the tail) and prints the take length. A 90s take is ~17MB @48k stereo int16.
+`max_volume` should be something like `-1.0 dB`, not `-91 dB`. A 90s take is ~17MB @48k stereo int16; an 8s test take is ~1.5MB.
 
 Notes from the sessions that worked:
 
-- `Buffer.alloc(server, n, channels)` takes **frames**, not samples — don't multiply by `numChans` or the file comes out twice as long with its second half silent.
-- The raw buffer dump always contains your take; the silent tail is cut by `trim-take` (via `silencedetect`, which can't miss the hard-drop-to-zero after STOP). There is no length bookkeeping, so no empty/44-byte files are possible.
+- Recording streams to disk in real time (`SoundFile` opened for write + `DiskOut` with the sound file as `outfile`). The `Buffer.alloc(s, 65536, 2)` is only the disk-streaming chunk buffer — no relationship to take length.
+- The file is closed/finalized when the `DiskOut` node is freed at STOP, so the length is always exactly the take (stop a touch early, on the cycle boundary).
+- No take-length clocks or buffer dumps exist anymore — the 46MB full-buffer and 44-byte bug classes are both gone. `~/bin/trim-take.sh` is still available to cut the silent tail off any older `*.raw.wav` leftovers.
 - If you reboot the server while Tidal patterns are still playing, the new server comes up without SuperDirt's synthdefs and you'll see a storm of `SynthDef not found` errors. Easiest recovery: `hush` in Tidal, then quit and reopen the SCIDE (its startup file boots the server + SuperDirt cleanly), then restart the Tidal session.
 
 ### 6. Test the pipeline without uploading
@@ -178,7 +175,7 @@ curl -s https://media.findingfocus.music/tracks.json | head -c 400
 ## Every night
 
 1. **Make the code**: save/commit the set's Tidal code in your tidal repo at `~/git/tidal/<date>.tidal` (e.g. `~/git/tidal/2026-08-29.tidal`). The script checks that file first (then `~/tidal/`, then fetches `<date>.tidal` from the `findingfocus/tidal` repo). The last 8 lines get attached to the track for the code overlay + copy button. No code found → a placeholder line is used and no source is attached.
-2. **Record**: REC START on a downbeat, REC STOP just before the next downbeat after a whole number of cycles (stop early — being late clips the next transient). Then `~/bin/trim-take.sh` to cut the silent tail — the publish script skips `.raw.wav` files automatically, but `--wav` the trimmed take anyway to be explicit.
+2. **Record**: REC START on a downbeat, REC STOP just before the next downbeat after a whole number of cycles (stop early — being late clips the next transient). The take streams straight to `~/recordings/<stamp>.wav` at exactly that length.
 3. **Publish**:
    ```bash
    ~/bin/publish-nightly.sh   # auto-name from the table
