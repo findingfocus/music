@@ -157,7 +157,7 @@ curl -s https://media.findingfocus.music/tracks.json | head -c 400
 
 **Seamless loops**
 
-With the start-on-a-downbeat / stop-before-the-next-downbeat ritual the raw take usually wraps cleanly. Publishing now applies a subtle **80ms edge fade by default** (`FF_EDGE_FADE=0.08`) to soften native media-element loop and seek boundaries. Use `--edge-fade 0` to disable it. If the source itself has a mismatched musical boundary, use a short crossfade such as `--fade 0.10`; for a take cut mid-cycle, use a wider value such as `--fade 2.0`.
+With the start-on-a-downbeat / stop-before-the-next-downbeat ritual the raw take usually wraps cleanly. Publishing now applies a subtle **50ms edge fade by default** (`FF_EDGE_FADE=0.05`) to soften native media-element loop and seek boundaries. Use `--edge-fade 0` to disable it. If the source itself has a mismatched musical boundary, use a short crossfade such as `--fade 0.10`; for a take cut mid-cycle, use a wider value such as `--fade 2.0`.
 
 **Replacing an existing track** (e.g. re-bake tonight's track with a better blend take):
 

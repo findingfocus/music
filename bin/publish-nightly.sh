@@ -16,7 +16,7 @@ WAV=""
 REPLACE_SLUG=""
 URL_VER=""
 FADE="${FF_FADE:-0}"
-EDGE_FADE="${FF_EDGE_FADE:-0.08}"
+EDGE_FADE="${FF_EDGE_FADE:-0.05}"
 DRY_RUN="${FF_DRY_RUN:-0}"
 
 usage() {
@@ -31,7 +31,7 @@ USAGE
                  else pulled from findingfocus.io/findingfocus/tidal)
   --title NAME   override the title (with --replace: renames the existing track)
   --fade N       loop crossfade width in seconds (default 0 = raw take; >0 wraps)
-  --edge-fade N  fade in/out at the file edges (default 0.08; use 0 to disable)
+  --edge-fade N  fade in/out at the file edges (default 0.05; use 0 to disable)
   --replace SLUG re-encode + overwrite an existing track in place, e.g. 2026-08-29_1
                  (the slug matches the .mp3 name on the bucket)
   --dry-run      build everything, print what would upload, upload nothing
