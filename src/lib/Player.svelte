@@ -154,7 +154,7 @@
 					const started = performance.now();
 					const ramp = (now: number) => {
 						if (rampId !== seekRampId) return;
-						const progress = Math.min(1, (now - started) / 80);
+						const progress = Math.min(1, (now - started) / 150);
 						media.volume = volume * progress;
 						if (progress < 1) requestAnimationFrame(ramp);
 					};
