@@ -144,7 +144,7 @@
 					statusHtml =
 						'playing <span class="state-track">&gt; ' +
 						(tracks[current]?.title ?? '').replace(/\s+/g, '_') +
-						'.wav</span>';
+						'.mp3</span>';
 				});
 				ws.on('pause', () => {
 					playing = false;
@@ -202,7 +202,7 @@
 	<div class="now-playing">
 		<span class="kw">{track?.title ?? 'no tracks yet'}</span>
 		{#if track?.date}
-			<span class="date">({track.date})</span>
+			<span class="date">{track.date}</span>
 		{/if}
 	</div>
 	<button type="button" class="code-line" onclick={openOverlay}>{track?.sub?.[0] ?? ''}</button>
