@@ -268,6 +268,7 @@
 	</div>
 
 	<div class="volume-row">
+		<div class="volume-control">
 		<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1-3.29-2.5-4.03v8.05c1.5-.73 2.5-2.25 2.5-4.02z"/></svg>
 		<input
 			type="range"
@@ -280,6 +281,13 @@
 				ws?.setVolume(volume);
 			}}
 		/>
+		</div>
+		{#if track?.url}
+			<a class="download-link" href={track.url} download aria-label="Download current track" title="Download current track">
+				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 20h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
+				<span>download mp3</span>
+			</a>
+		{/if}
 	</div>
 
 	<div class="transport">

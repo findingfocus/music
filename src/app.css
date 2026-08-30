@@ -281,16 +281,34 @@ body{
 .volume-row{
   display:flex;
   align-items:center;
+  justify-content: space-between;
   gap: 6px;
   color: var(--text-dim);
   padding-bottom: 20px;
 }
+.volume-control{ display:flex; align-items:center; gap: 6px; }
 .volume-row input[type="range"]{
   width: 120px;
   height: 6px;
   accent-color: var(--amber);
   cursor: pointer;
 }
+.download-link{
+  display:flex;
+  align-items:center;
+  gap: 5px;
+  color: var(--text-dim);
+  border: 1px solid var(--panel-line);
+  border-radius: 3px;
+  padding: 4px 7px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.15s ease;
+}
+.download-link:hover{ color: var(--amber); }
 @media (max-width: 480px){
   body{ padding: 10px; }
   .app{ max-width: 100%; }
@@ -298,7 +316,8 @@ body{
   .tabs{ font-size: 11px; }
   .tab{ padding: 9px 12px; }
   .transport{ gap: 16px; }
-  .volume-row{ display: none; }
+  .volume-row{ padding-bottom: 20px; }
+  .volume-control{ display: none; }
   .state-track{ display: none; }
 }
 @media (max-width: 1000px){
