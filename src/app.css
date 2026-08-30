@@ -328,8 +328,7 @@ body{
   .transport-row{ gap: 18px; }
   .transport{ gap: 16px; }
   .volume-row{ padding-bottom: 20px; }
-  .volume-row input[type="range"]{ width: 72px; }
-  .download-link span{ display: none; }
+  .volume-row input[type="range"]{ width: 110px; }
   .state-track{ display: none; }
 }
 @media (max-width: 1000px){
