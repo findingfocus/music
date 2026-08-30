@@ -77,7 +77,7 @@ s.waitForBoot {
   var dir, path, buf, recNode;
   dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
   path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
-  buf = Buffer.alloc(s, (s.sampleRate * dur).asInteger * numChans, numChans);
+  buf = Buffer.alloc(s, (s.sampleRate * dur).asInteger, numChans);
   s.sync;
   SynthDef(\ffdiskrec, { |buffer|
     DiskOut.ar(buffer, In.ar(0, numChans))
@@ -109,6 +109,8 @@ ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_vol
 ```
 
 `max_volume` should be something like `-1.0 dB`, not `-91 dB`. To capture a whole set, set `dur` to its length and start at the same time as the stream.
+
+Note: `Buffer.alloc(server, n, channels)` takes **frames**, not samples — don't multiply by `numChans` or the file comes out twice as long with its second half silent.
 
 #### Troubleshooting: "Command line parse failed"
 
