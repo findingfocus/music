@@ -55,11 +55,13 @@ function titleCase(s) {
 const L = LANDMARKS.length;
 const P = PROCESS.length;
 const TOTAL = L * P;
+// L and P are coprime, so indexing both counters by (idx-1) yields every
+// ordered pair exactly once across the cycle — every night varies BOTH words.
 const rows = [];
 for (let idx = 1; idx <= TOTAL; idx++) {
-  const l = LANDMARKS[(idx - 1) % L];
-  const pr = PROCESS[Math.floor((idx - 1) / L) % P];
-  rows.push({ index: idx, landmark: l, process: pr, title: `${titleCase(l)} ${titleCase(pr)}` });
+	const l = LANDMARKS[(idx - 1) % L];
+	const pr = PROCESS[(idx - 1) % P];
+	rows.push({ index: idx, landmark: l, process: pr, title: `${titleCase(l)} ${titleCase(pr)}` });
 }
 const out = { generated_at: new Date().toISOString(), landmarks: L, process: P, total: TOTAL, names: rows };
 console.log(JSON.stringify(out, null, 2));
