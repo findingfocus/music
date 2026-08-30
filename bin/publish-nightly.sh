@@ -4,7 +4,7 @@ set -euo pipefail
 REMOTE="${FF_RCLONE_REMOTE:-ffmedia}"
 BUCKET="${FF_R2_BUCKET:-findingfocus-music}"
 R2_TRACKS="tracks.json"
-R2_DIR="nightly"
+R2_DIR="${FF_R2_DIR:-tracks}"
 R2_BASE="${FF_R2_BASE:-https://media.findingfocus.music}"
 REPO_CODE_URL="https://findingfocus.io/findingfocus/tidal/raw/branch/main"
 RECORDINGS_DIR="${FF_RECORDINGS_DIR:-$HOME/recordings}"
@@ -14,6 +14,7 @@ TITLE_OVERRIDE=""
 CODE_FILE=""
 WAV=""
 REPLACE_SLUG=""
+URL_VER=""
 FADE="${FF_FADE:-2.0}"
 DRY_RUN="${FF_DRY_RUN:-0}"
 
@@ -67,7 +68,7 @@ if [[ -n "$REPLACE_SLUG" ]]; then
   curl -sf --max-time 10 "$R2_BASE/$R2_TRACKS" -o "$TMP/remote.json" \
     || { echo "replace: could not fetch $R2_BASE/$R2_TRACKS to find '$REPLACE_SLUG'"; exit 1; }
   source <(python3 - "$TMP/remote.json" "$REPLACE_SLUG" <<'PY'
-import json, sys, shlex
+import json, re, sys, shlex
 p, slug = sys.argv[1:]
 items = json.load(open(p))
 for t in items:
@@ -77,6 +78,9 @@ for t in items:
         print("EXIST_DATE=" + shlex.quote(t.get("date", "")))
         print("EXIST_ID=" + shlex.quote(t.get("id", "")))
         print("EXIST_INDEX=" + str(t.get("index", "")))
+        print("EXIST_URL=" + shlex.quote(t.get("url", "")))
+        m = re.search(r"[?&]v=(\d+)", t.get("url", ""))
+        print("EXIST_VER=" + (m.group(1) if m else "0"))
         break
 else:
     raise SystemExit(f"replace: no track matching '{slug}' in tracks.json")
@@ -91,6 +95,7 @@ PY
   TITLE="$EXIST_TITLE"
   if [[ -n "$TITLE_OVERRIDE" ]]; then TITLE="$TITLE_OVERRIDE"; fi
   SLUG="${DATE}_${NEXT}"
+  URL_VER=$((EXIST_VER + 1))
 else
   # next index: counter lives in tracks.json, no day-tracking
   if curl -sf --max-time 10 "$R2_BASE/$R2_TRACKS" -o "$TMP/remote.json"; then
@@ -110,13 +115,17 @@ fi
 MP3_KEY="$R2_DIR/${SLUG}.mp3"
 PEAKS_KEY="$R2_DIR/${SLUG}.peaks.json"
 MP3_URL="$R2_BASE/$MP3_KEY"
+# replace bumps ?v=N so the URL is a fresh cache slot at the CDN + browsers
+if [[ -n "$URL_VER" ]]; then
+  MP3_URL="$MP3_URL?v=$URL_VER"
+fi
 
 echo "mode  : $MODE"
 echo "index : $NEXT"
 echo "title : $TITLE"
 echo "id    : $ID"
 echo "from  : $WAV"
-[[ "$MODE" == "replace" ]] && echo "key   : $MP3_KEY"
+[[ "$MODE" == "replace" ]] && echo "url   : $MP3_URL"
 
 # --- encode (seamless loop: crossfade end<->start, width FADE) ---
 ENC_SRC="$WAV"

@@ -130,7 +130,7 @@ Runs everything real (encode, peaks, index lookup, code import, merge) but only 
 ~/bin/publish-nightly.sh
 ```
 
-- Encodes → `nightly/<date>_<n>.mp3` (192k stereo mp3).
+- Encodes → `tracks/<date>_<n>.mp3` (192k stereo mp3).
 - Uploads mp3 + `.peaks.json`.
 - Rewrites `tracks.json` with today's entry prepended and `Cache-Control: no-cache`.
 
@@ -165,11 +165,13 @@ Every published mp3 is a seamless loop: the first and last ~2s of the take are c
 ~/bin/publish-nightly.sh --replace 2026-08-29_1             # re-encode + overwrite in place
 ```
 
-The slug is the date-and-index as it appears on the mp3 (`nightly/2026-08-29_1.mp3`). A replace
+The slug is the date-and-index as it appears on the mp3 (`tracks/2026-08-29_1.mp3`). A replace
 re-encodes the newest wav through the same blend pipeline, overwrites the exact same mp3/peaks
-keys (with `Cache-Control: no-cache` so the CDN re-fetches), and edits only that entry in
-`tracks.json` — id, date, position and the index counter are untouched. If no code is found for the
-track's date, the existing `sub`/`source` are kept. `--title "..."` renames on replace.
+keys (with `Cache-Control: no-cache`), and edits only that entry in `tracks.json` — id, date,
+position and the index counter are untouched. Each replace bumps a `?v=N` onto the track's `url`,
+so the CDN and browsers always fetch the fresh file (never a stale cache, no purging needed). If
+no code is found for the track's date, the existing `sub`/`source` are kept. `--title "..."`
+renames on replace.
 
 **Naming & tracking notes**
 
