@@ -84,25 +84,21 @@ Start exactly on a downbeat; stop a touch early, just before the next downbeat a
 (
 var numChans = 2;
 s.waitForBoot {
-  var dir, path, sf, buf, recNode;
+  var dir, path, buf, recNode;
   if (~recNode.notNil) {
     "recorder already running — STOP first".postln;
   } {
     dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
     path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
-    sf = SoundFile.new;
-    sf.sampleRate = s.sampleRate;
-    sf.numChannels = numChans;   // WAVE + int16 by default
-    sf.openWrite(path);
-    buf = Buffer.alloc(s, 65536, numChans);   // disk-streaming buffer, not the take
+    buf = Buffer.cueSoundFile(s, path, 0, numChans, s.sampleRate);
     s.sync;
-    SynthDef(\ffdiskrec, { |buffer, outfile|
-      DiskOut.ar(buffer, In.ar(0, numChans), outfile)
+    SynthDef(\ffdiskrec, { |buffer|
+      DiskOut.ar(buffer, In.ar(0, numChans))
     }).add;
     s.sync;
-    recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf, \outfile, sf]);
+    recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
+    ~recBuf = buf;
     ~recNode = recNode;
-    ~recSF = sf;
     ~recPath = path;
     "REC ON -> %".format(path).postln;
   };
@@ -117,11 +113,11 @@ s.waitForBoot {
   if (~recNode.isNil) {
     "no recorder running".postln;
   } {
-    ~recNode.free;   // flushes + finalizes the file
+    ~recNode.free;
     s.sync;
-    ~recSF.notNil.if { ~recSF.close };
+    ~recBuf.notNil.if { ~recBuf.close; ~recBuf.free };
     ~recNode = nil;
-    ~recSF = nil;
+    ~recBuf = nil;
     "STOP -> % (exact take)".format(~recPath).postln;
     ~recPath = nil;
   };
@@ -139,9 +135,10 @@ ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_vol
 
 Notes from the sessions that worked:
 
-- Recording streams to disk in real time (`SoundFile` opened for write + `DiskOut` with the sound file as `outfile`). The `Buffer.alloc(s, 65536, 2)` is only the disk-streaming chunk buffer — no relationship to take length.
-- The file is closed/finalized when the `DiskOut` node is freed at STOP, so the length is always exactly the take (stop a touch early, on the cycle boundary).
-- No take-length clocks or buffer dumps exist anymore — the 46MB full-buffer and 44-byte bug classes are both gone. `~/bin/trim-take.sh` is still available to cut the silent tail off any older `*.raw.wav` leftovers.
+- The recorder uses the canonical SC disk-writing pair: `Buffer.cueSoundFile(...)` opens/creates the `.wav` for writing (format follows the extension — WAVE, int16), and `DiskOut.ar(buffer, audio)` streams the output bus into that file in real time. No take-length clocks, buffer dumps, or post-trimming exist.
+- STOP frees the `DiskOut` synth, then `close`s + `free`s the cue buffer, finalizing the header — the file length is always exactly the take (stop a touch early, on the cycle boundary). An 8s test take is ~1.5MB.
+- If a take files chips or xruns during loud sets, the disk chunk buffer can be enlarged (`Buffer.alloc(s, 131072, 2)`) — but the cue/file path stays the same.
+- `~/bin/trim-take.sh` is still available to cut the silent tail off any older `*.raw.wav` leftovers.
 - If you reboot the server while Tidal patterns are still playing, the new server comes up without SuperDirt's synthdefs and you'll see a storm of `SynthDef not found` errors. Easiest recovery: `hush` in Tidal, then quit and reopen the SCIDE (its startup file boots the server + SuperDirt cleanly), then restart the Tidal session.
 
 ### 6. Test the pipeline without uploading
