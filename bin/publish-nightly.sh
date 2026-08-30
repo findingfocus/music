@@ -16,6 +16,7 @@ WAV=""
 REPLACE_SLUG=""
 URL_VER=""
 FADE="${FF_FADE:-0}"
+EDGE_FADE="${FF_EDGE_FADE:-0}"
 DRY_RUN="${FF_DRY_RUN:-0}"
 
 usage() {
@@ -30,6 +31,7 @@ USAGE
                  else pulled from findingfocus.io/findingfocus/tidal)
   --title NAME   override the title (with --replace: renames the existing track)
   --fade N       loop crossfade width in seconds (default 0 = raw take; >0 wraps)
+  --edge-fade N  fade in/out at the file edges (default 0; try 0.05)
   --replace SLUG re-encode + overwrite an existing track in place, e.g. 2026-08-29_1
                  (the slug matches the .mp3 name on the bucket)
   --dry-run      build everything, print what would upload, upload nothing
@@ -43,6 +45,7 @@ while [[ $# -gt 0 ]]; do
     --code) CODE_FILE="$2"; shift 2 ;;
     --title) TITLE_OVERRIDE="$2"; shift 2 ;;
     --fade) FADE="$2"; shift 2 ;;
+    --edge-fade) EDGE_FADE="$2"; shift 2 ;;
     --replace) REPLACE_SLUG="$2"; shift 2 ;;
     --dry-run) DRY_RUN=1; shift ;;
     -h | --help) usage ;;
@@ -154,6 +157,22 @@ PY
   else
      echo "blend: skipped ($W < 0.01s)"
   fi
+fi
+
+# A very short edge fade masks the unavoidable media-element loop boundary.
+if python3 -c "import sys; sys.exit(0 if float('$EDGE_FADE') > 0 else 1)"; then
+  ENC_DUR=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$ENC_SRC" | cut -c1-9)
+  EDGE_START=$(python3 - "$ENC_DUR" "$EDGE_FADE" <<'PY'
+import sys
+d, f = float(sys.argv[1]), float(sys.argv[2])
+print(max(0, d - f))
+PY
+)
+  echo "edge fade: ${EDGE_FADE}s in/out"
+  ffmpeg -y -v error -i "$ENC_SRC" -af \
+    "afade=t=in:st=0:d=${EDGE_FADE},afade=t=out:st=${EDGE_START}:d=${EDGE_FADE}" \
+    -vn -ac 2 -c:a pcm_s16le "$TMP/edge-faded.wav"
+  ENC_SRC="$TMP/edge-faded.wav"
 fi
 
 ffmpeg -y -v error -i "$ENC_SRC" -vn -ac 2 -codec:a libmp3lame -b:a 192k "$TMP/out.mp3"
