@@ -74,16 +74,17 @@ Paste into sclang while SuperDirt is running (any d-pattern works). Records the 
 var dur = 20.0;   // <-- record length, seconds
 var numChans = 2;
 s.waitForBoot {
-  var dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
+  var dir, path, buf, recNode;
+  dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
   dir.createDirAll;
-  var path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
-  var buf = Buffer.alloc(s, (s.sampleRate * dur).asInteger * numChans, numChans);
+  path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
+  buf = Buffer.alloc(s, (s.sampleRate * dur).asInteger * numChans, numChans);
   s.sync;
   SynthDef(\ffdiskrec, { |buffer|
     DiskOut.ar(buffer, In.ar(0, numChans))
   }).add;
   s.sync;
-  var recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
+  recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
   "recording %s s -> %".format(dur, path).postln;
   dur.wait;
   s.sync;
