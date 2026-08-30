@@ -57,7 +57,7 @@ TMP=$(mktemp -d)
 trap 'rm -rf "$TMP"' EXIT
 
 if [[ -z "$WAV" ]]; then
-  WAV=$(ls -t "$RECORDINGS_DIR"/*.wav 2>/dev/null | head -1 || true)
+  WAV=$(ls -t "$RECORDINGS_DIR"/*.wav 2>/dev/null | grep -v '\.raw\.wav$' | head -1 || true)
 fi
 [[ -n "$WAV" && -f "$WAV" ]] || { echo "no wav found: pass --wav or drop a file in $RECORDINGS_DIR"; exit 1; }
 
