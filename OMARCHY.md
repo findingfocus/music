@@ -116,12 +116,16 @@ s.waitForBoot {
   } {
     dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
     path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
-    if (~recStart.isNil) {
-      "warning: no ~recStart (old-style recording) — writing whole buffer".postln;
-      frames = ~recBuf.numFrames;
-    } {
+    frames = ~recBuf.numFrames;   // safe default: whole buffer
+    if (~recStart.notNil) {
       frames = ((SystemClock.beats - ~recStart) * s.sampleRate).asInteger + 4410; // 0.1s pad
       frames = frames min: ~recBuf.numFrames;
+    };
+    if (frames <= 0) {
+      "warning: take-length clock gave %s s (recStart=%; now=%s) — writing whole buffer".format(
+        ((frames - 4410) / s.sampleRate).round(0.001),
+        ~recStart, SystemClock.beats).postln;
+      frames = ~recBuf.numFrames;
     };
     ~recNode.free;
     s.sync;
@@ -148,6 +152,7 @@ Notes from the sessions that worked:
 
 - `Buffer.alloc(server, n, channels)` takes **frames**, not samples — don't multiply by `numChans` or the file comes out twice as long with its second half silent.
 - `Buffer:write` dumps the **whole buffer** by default — the STOP block passes `numFrames` so only the recorded take is written. Sanity check: a 90s stereo take at 48k int16 is ~17MB. A ~115MB file means the full 600s buffer was dumped (bookkeeping regressed).
+- A **44-byte wav** is a header with zero data frames — the length clock gave `frames ≤ 0`. STOP now guards this (writes the whole buffer + a warning line instead); paste that warning if you ever see it. If the warning appears, the take isn't lost: trim the silent tail with `ffmpeg -i file.wav -af silencedetect=noise=-45dB:d=0.2 -f null -` as in the trim recipe.
 - If you reboot the server while Tidal patterns are still playing, the new server comes up without SuperDirt's synthdefs and you'll see a storm of `SynthDef not found` errors. Easiest recovery: `hush` in Tidal, then quit and reopen the SCIDE (its startup file boots the server + SuperDirt cleanly), then restart the Tidal session.
 
 ### 6. Test the pipeline without uploading
