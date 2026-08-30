@@ -76,7 +76,6 @@ var numChans = 2;
 s.waitForBoot {
   var dir, path, buf, recNode;
   dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
-  dir.createDirAll;
   path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
   buf = Buffer.alloc(s, (s.sampleRate * dur).asInteger * numChans, numChans);
   s.sync;
