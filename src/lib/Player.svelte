@@ -13,6 +13,7 @@
 	let ws: WSType | null = null;
 	let pendingPlay = false;
 	let disposed = false;
+	let cleanupSeekAudio: (() => void) | null = null;
 
 	let current = $state(0);
 	let loopMode = $state<'all' | 'one'>('all');
@@ -136,6 +137,36 @@
 					dragToSeek: true,
 					renderFunction: renderProfessionalWave
 				});
+				const media = ws.getMediaElement();
+				let seekMuted = false;
+				let seekRampId = 0;
+				const muteForSeek = () => {
+					if (ws?.isPlaying()) {
+						seekMuted = true;
+						media.volume = 0;
+					}
+				};
+				const restoreAfterSeek = () => {
+					if (!seekMuted) return;
+					seekMuted = false;
+					const rampId = ++seekRampId;
+					const started = performance.now();
+					const ramp = (now: number) => {
+						if (rampId !== seekRampId) return;
+						const progress = Math.min(1, (now - started) / 30);
+						media.volume = volume * progress;
+						if (progress < 1) requestAnimationFrame(ramp);
+					};
+					requestAnimationFrame(ramp);
+				};
+				ws.on('interaction', muteForSeek);
+				media.addEventListener('seeking', muteForSeek);
+				media.addEventListener('seeked', restoreAfterSeek);
+				cleanupSeekAudio = () => {
+					seekRampId++;
+					media.removeEventListener('seeking', muteForSeek);
+					media.removeEventListener('seeked', restoreAfterSeek);
+				};
 				ws.on('ready', () => {
 					durTime = formatTime(ws?.getDuration() ?? 0);
 					applyLoopAttr();
@@ -183,6 +214,8 @@
 		disposed = true;
 		if (typeof document !== 'undefined') {
 			document.removeEventListener('keydown', onKeydown);
+			cleanupSeekAudio?.();
+			cleanupSeekAudio = null;
 			ws?.destroy();
 		}
 		ws = null;
