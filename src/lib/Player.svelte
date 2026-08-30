@@ -77,6 +77,11 @@
 		return url.replace('/raw/branch/', '/src/branch/');
 	}
 
+	function isAppleMobile() {
+		return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+			(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+	}
+
 	function loadTrack(i: number, autoplay: boolean) {
 		if (tracks.length === 0) return;
 		current = i;
@@ -244,19 +249,21 @@
 				media.preload = 'metadata';
 				media.setAttribute('playsinline', '');
 				media.setAttribute('webkit-playsinline', '');
-				try {
-					audioContext = new AudioContext();
-					const source = audioContext.createMediaElementSource(media);
-					analyser = audioContext.createAnalyser();
-					analyser.fftSize = 1024;
-					analyser.smoothingTimeConstant = 0.84;
-					source.connect(analyser);
-					analyser.connect(audioContext.destination);
-					drawVisualizer();
-				} catch (error) {
-					console.warn('visualizer unavailable:', error);
-					audioContext = null;
-					analyser = null;
+				if (!isAppleMobile()) {
+					try {
+						audioContext = new AudioContext();
+						const source = audioContext.createMediaElementSource(media);
+						analyser = audioContext.createAnalyser();
+						analyser.fftSize = 1024;
+						analyser.smoothingTimeConstant = 0.84;
+						source.connect(analyser);
+						analyser.connect(audioContext.destination);
+						drawVisualizer();
+					} catch (error) {
+						console.warn('visualizer unavailable:', error);
+						audioContext = null;
+						analyser = null;
+					}
 				}
 				let seekMuted = false;
 				let seekRampId = 0;
