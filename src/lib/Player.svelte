@@ -156,9 +156,14 @@
 					const peaks = track?.peaks ?? [];
 					const duration = track?.duration || 1;
 					const progress = Math.min(1, Math.max(0, (ws?.getCurrentTime() ?? 0) / duration));
-					const offset = Math.floor(progress * peaks.length);
+					const cursor = progress * Math.max(0, peaks.length - 1);
+					const windowSpan = Math.min(40, Math.max(0, peaks.length - 1));
 					for (let i = 0; i < bars; i++) {
-						const peak = peaks[(offset + Math.floor((i / bars) * peaks.length)) % (peaks.length || 1)] ?? 0;
+						const sample = cursor + (i / Math.max(1, bars - 1) - 0.5) * windowSpan;
+						const lower = Math.max(0, Math.min(peaks.length - 1, Math.floor(sample)));
+						const upper = Math.min(peaks.length - 1, lower + 1);
+						const blend = Math.max(0, Math.min(1, sample - lower));
+						const peak = (peaks[lower] ?? 0) * (1 - blend) + (peaks[upper] ?? 0) * blend;
 						const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
 						targets[i] = playing ? Math.pow(peak / 100, 0.8) * taper : 0;
@@ -168,11 +173,12 @@
 				if (loud > wavePeak) wavePeak = wavePeak + (loud - wavePeak) * 0.4;
 				else wavePeak = wavePeak * 0.995;
 				const scale = wavePeak > 0.02 ? 1.05 / wavePeak : 1;
+				const response = analyser ? 0.08 : 0.15;
 				for (let i = 0; i < bars; i++) {
 					const pv = targets[Math.max(0, i - 1)];
 					const nx = targets[Math.min(bars - 1, i + 1)];
 					const sp = (pv + targets[i] * 2 + nx) / 4;
-					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * 0.08;
+					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * response;
 				}
 				const idle = 0.04 * h;
 				const mobileGain = analyser ? 1 : 0.65;
