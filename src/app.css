@@ -201,24 +201,7 @@ body{
 }
 .time-row span:last-child{ color: var(--text-dim); }
 
-.visualizer-frame{
-  position: absolute;
-  right: 0;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 54px;
-  height: 54px;
-  border-top: 1px solid var(--panel-line);
-  border-bottom: 1px solid var(--panel-line);
-  border-left: 1px solid var(--panel-line);
-  border-right: 1px solid var(--panel-line);
-  border-radius: 3px;
-  background: rgba(142,112,147,0.035);
-  overflow: hidden;
-}
-.visualizer-frame canvas{ display:block; width:100%; height:100%; }
 .transport-row{
-  position: relative;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -275,6 +258,7 @@ body{
 
 /* ---- status bar, mimicking the neovim statusline ---- */
 .statusline{
+  position: relative;
   display:flex;
   align-items:center;
   justify-content:space-between;
@@ -344,7 +328,8 @@ body{
   .transport-row{ gap: 18px; }
   .transport{ gap: 16px; }
   .volume-row{ padding-bottom: 20px; }
-  .volume-control{ display: none; }
+  .volume-row input[type="range"]{ width: 72px; }
+  .download-link span{ display: none; }
   .state-track{ display: none; }
 }
 @media (max-width: 1000px){
@@ -357,7 +342,7 @@ body{
   text-align: center;
   font-size: 10.5px;
   color: var(--text-dim);
-  padding: 10px 0 10px;
+  padding: 10px 14px 10px;
 }
 .also-building a{
   color: var(--text-dim);
@@ -365,3 +350,21 @@ body{
   border-bottom: 1px dotted var(--panel-line);
 }
 .also-building a:hover{ color: var(--amber); border-color: var(--amber); }
+.viz-strip{
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 100%;
+  height: 40px;
+  pointer-events: none;
+  overflow: hidden;
+  opacity: 0.5;
+  z-index: 2;
+}
+.viz-strip canvas{
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}

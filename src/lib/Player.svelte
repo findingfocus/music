@@ -109,16 +109,17 @@
 				ctx.clearRect(0, 0, canvas.width, canvas.height);
 				const tdata = new Uint8Array(analyser.frequencyBinCount * 2);
 				analyser.getByteTimeDomainData(tdata);
-				const bars = 14;
-				const half = bars / 2;
-				if (!smoothWave || smoothWave.length !== bars) {
-					smoothWave = new Float32Array(bars).fill(0);
-				}
 				const w = canvas.width;
 				const h = canvas.height;
 				const mid = h / 2;
+				const bars = Math.max(12, Math.min(48, Math.round(w / (8 * ratio))));
+				const half = bars / 2;
+				if (!smoothWave || smoothWave.length !== bars) {
+					smoothWave = new Float32Array(bars).fill(0);
+					wavePeak = 0;
+				}
 				const slot = w / bars;
-				const barWidth = Math.max(1.5 * ratio, slot * 0.38);
+				const barWidth = Math.max(1 * ratio, slot * 0.4);
 				const step = tdata.length / bars;
 				const targets = new Array(bars);
 				for (let i = 0; i < bars; i++) {
@@ -141,11 +142,11 @@
 					const sp = (pv + targets[i] * 2 + nx) / 4;
 					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * 0.08;
 				}
-				const idle = 0.06 * h;
+				const idle = 0.04 * h;
 				for (let i = 0; i < bars; i++) {
-					const barH = Math.max(idle, smoothWave[i] * scale * h * 0.78);
+					const barH = Math.max(idle, smoothWave[i] * scale * h * 0.7);
 					const x = i * slot + (slot - barWidth) / 2;
-					ctx.fillStyle = '#8E7093';
+					ctx.fillStyle = 'rgba(142,112,147,0.55)';
 					const r = Math.min(barWidth / 2, barH / 2);
 					ctx.beginPath();
 					ctx.roundRect(x, mid - barH / 2, barWidth, barH, r);
@@ -400,9 +401,6 @@
 				<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6v12l8.5-6z"/></svg>
 			</button>
 		</div>
-		<div class="visualizer-frame" aria-label="Live audio spectrum">
-			<canvas bind:this={visualizerEl}></canvas>
-		</div>
 	</div>
 
 	<div class="loop-row">
@@ -411,6 +409,9 @@
 </div>
 
 <div class="statusline">
+	<div class="viz-strip" aria-hidden="true">
+		<canvas bind:this={visualizerEl}></canvas>
+	</div>
 	<div class="status-left">
 		<a href="https://tidalcycles.org" style="text-decoration: none;"><span class="mode">TIDAL</span></a>
 		<span class="status-mid">{@html statusHtml}</span>
