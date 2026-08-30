@@ -32,7 +32,7 @@ mkdir -p ~/bin ~/recordings ~/tidal
 
 ```bash
 BASE=https://findingfocus.io/findingfocus/music/raw/branch/main/bin
-for f in names.json names.py peaks.py publish-nightly.sh trim-take.sh; do
+for f in names.json names.py peaks.py publish-nightly.sh; do
   curl -fsSL "$BASE/$f" -o "$HOME/bin/$f" && chmod +x "$HOME/bin/$f"
 done
 ```
@@ -75,7 +75,7 @@ rclone lsl ffmedia:findingfocus-music   # lists bucket contents
 
 ### 5. Test recording from SuperCollider
 
-Paste into sclang while SuperDirt is running (any d-pattern works). Two blocks, run by cursor + **Ctrl+Enter** (Linux): **REC START** opens a `~/recordings/<stamp>.wav` and starts a `DiskOut` synth that streams the SC output mix straight to disk in real time; **REC STOP** frees the synth, finalizing the file. The file on disk is exactly the take — no buffers, no trims, no length bookkeeping.
+Paste into sclang while SuperDirt is running (any d-pattern works). Two blocks, run by cursor + **Ctrl+Enter** (Linux): **REC START** uses SuperCollider's built-in server recorder and opens a `~/recordings/<stamp>.wav`; **REC STOP** stops and finalizes it. The file on disk is exactly the take — no custom buffers, clocks, or trimming.
 
 Start exactly on a downbeat; stop a touch early, just before the next downbeat after a whole number of cycles (being late clips the next downbeat transient).
 
@@ -84,21 +84,16 @@ Start exactly on a downbeat; stop a touch early, just before the next downbeat a
 (
 var numChans = 2;
 s.waitForBoot {
-  var dir, path, buf, recNode;
-  if (~recNode.notNil) {
+  var dir, path;
+  if (s.isRecording) {
     "recorder already running — STOP first".postln;
   } {
     dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
     path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
-    buf = Buffer.cueSoundFile(s, path, 0, numChans, s.sampleRate);
-    s.sync;
-    SynthDef(\ffdiskrec, { |buffer|
-      DiskOut.ar(buffer, In.ar(0, numChans))
-    }).add;
-    s.sync;
-    recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
-    ~recBuf = buf;
-    ~recNode = recNode;
+    s.recHeaderFormat = "wav";
+    s.recSampleFormat = "int16";
+    s.recChannels = numChans;
+    s.record(path: path, numChannels: numChans);
     ~recPath = path;
     "REC ON -> %".format(path).postln;
   };
@@ -110,14 +105,10 @@ s.waitForBoot {
 // REC STOP — Ctrl+Enter just before the next downbeat
 (
 s.waitForBoot {
-  if (~recNode.isNil) {
+  if (s.isRecording.not) {
     "no recorder running".postln;
   } {
-    ~recNode.free;
-    s.sync;
-    ~recBuf.notNil.if { ~recBuf.close; ~recBuf.free };
-    ~recNode = nil;
-    ~recBuf = nil;
+    s.stopRecording;
     "STOP -> % (exact take)".format(~recPath).postln;
     ~recPath = nil;
   };
@@ -135,10 +126,8 @@ ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_vol
 
 Notes from the sessions that worked:
 
-- The recorder uses the canonical SC disk-writing pair: `Buffer.cueSoundFile(...)` opens/creates the `.wav` for writing (format follows the extension — WAVE, int16), and `DiskOut.ar(buffer, audio)` streams the output bus into that file in real time. No take-length clocks, buffer dumps, or post-trimming exist.
-- STOP frees the `DiskOut` synth, then `close`s + `free`s the cue buffer, finalizing the header — the file length is always exactly the take (stop a touch early, on the cycle boundary). An 8s test take is ~1.5MB.
-- If a take files chips or xruns during loud sets, the disk chunk buffer can be enlarged (`Buffer.alloc(s, 131072, 2)`) — but the cue/file path stays the same.
-- `~/bin/trim-take.sh` is still available to cut the silent tail off any older `*.raw.wav` leftovers.
+- The built-in `Server.record` handles the disk buffer, file format, and output-bus capture. `Server.stopRecording` closes the file and updates its WAV header. An 8s test take is ~1.5MB.
+- If a recording is already active, REC START refuses to replace it. Run REC STOP first.
 - If you reboot the server while Tidal patterns are still playing, the new server comes up without SuperDirt's synthdefs and you'll see a storm of `SynthDef not found` errors. Easiest recovery: `hush` in Tidal, then quit and reopen the SCIDE (its startup file boots the server + SuperDirt cleanly), then restart the Tidal session.
 
 ### 6. Test the pipeline without uploading
@@ -208,7 +197,7 @@ renames on replace.
 
 ```bash
 BASE=https://findingfocus.io/findingfocus/music/raw/branch/main/bin
-for f in names.json names.py peaks.py publish-nightly.sh trim-take.sh; do
+for f in names.json names.py peaks.py publish-nightly.sh; do
   curl -fsSL "$BASE/$f" -o "$HOME/bin/$f" && chmod +x "$HOME/bin/$f"
 done
 ```
