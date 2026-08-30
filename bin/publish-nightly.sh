@@ -7,7 +7,7 @@ R2_DIR="nightly"
 R2_BASE="${FF_R2_BASE:-https://media.findingfocus.music}"
 REPO_CODE_URL="https://findingfocus.io/findingfocus/tidal/raw/branch/main"
 RECORDINGS_DIR="${FF_RECORDINGS_DIR:-$HOME/recordings}"
-LOCAL_TIDAL_DIR="${FF_TIDAL_DIR:-$HOME/tidal}"
+LOCAL_TIDAL_DIRS="${FF_TIDAL_DIR:-$HOME/git/tidal $HOME/tidal}"
 
 TITLE_OVERRIDE=""
 CODE_FILE=""
@@ -86,10 +86,17 @@ python3 "$BIN/peaks.py" "$TMP/out.mp3" "$TMP/peaks.json"
 # --- code import ---
 CODE_SOURCE=""
 SOURCE_URL=""
+LOCAL_TIDAL_FILE=""
+for d in $LOCAL_TIDAL_DIRS; do
+  if [[ -f "$d/$DATE.tidal" ]]; then
+    LOCAL_TIDAL_FILE="$d/$DATE.tidal"
+    break
+  fi
+done
 if [[ -n "$CODE_FILE" && -f "$CODE_FILE" ]]; then
   CODE_SOURCE=$(cat "$CODE_FILE")
-elif [[ -f "$LOCAL_TIDAL_DIR/$DATE.tidal" ]]; then
-  CODE_SOURCE=$(cat "$LOCAL_TIDAL_DIR/$DATE.tidal")
+elif [[ -n "$LOCAL_TIDAL_FILE" ]]; then
+  CODE_SOURCE=$(cat "$LOCAL_TIDAL_FILE")
   SOURCE_URL="$REPO_CODE_URL/$DATE.tidal"
 elif curl -sf --max-time 10 "$REPO_CODE_URL/$DATE.tidal" -o "$TMP/code.tidal" 2>/dev/null; then
   CODE_SOURCE=$(cat "$TMP/code.tidal")
