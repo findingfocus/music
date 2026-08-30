@@ -139,7 +139,7 @@ if d <= 2 * f + 1:
 print(f"{f:.3f} {d - f:.3f}")
 PY
 )"
-  if python3 -c "import sys; sys.exit(0 if float('$W') >= 0.25 else 1)"; then
+  if python3 -c "import sys; sys.exit(0 if float('$W') >= 0.01 else 1)"; then
     echo "blend: ${W}s crossfade wrap"
     ffmpeg -y -v error -i "$WAV" -filter_complex \
       "[0:a]asplit=3[a0][a1][a2]; \
@@ -152,7 +152,7 @@ PY
       -map "[out]" -vn -ac 2 -c:a pcm_s16le "$TMP/seamless.wav"
     ENC_SRC="$TMP/seamless.wav"
   else
-    echo "blend: skipped ($W < 0.25s)"
+     echo "blend: skipped ($W < 0.01s)"
   fi
 fi
 

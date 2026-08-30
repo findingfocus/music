@@ -157,7 +157,7 @@ curl -s https://media.findingfocus.music/tracks.json | head -c 400
 
 **Seamless loops**
 
-With the start-on-a-downbeat / stop-before-the-next-downbeat ritual the raw take already wraps cleanly, so **no fade is applied by default** (`FF_FADE=0`). If a take gets cut mid-cycle, re-enable an explicit crossfade wrap with `--fade N` (seconds) or `FF_FADE=2.0` — the first and last ~N seconds are crossfaded together (`[tail][head]acrossfade`) and the file is rebuilt as `blend + middle + blend`, so the end→start wrap never clicks.
+With the start-on-a-downbeat / stop-before-the-next-downbeat ritual the raw take usually wraps cleanly, so **no fade is applied by default** (`FF_FADE=0`). If there is a tiny click at the boundary, use a short explicit crossfade such as `--fade 0.10`; this overlaps the last and first 100ms while keeping the loop fast. For a take cut mid-cycle, use a wider value such as `--fade 2.0`.
 
 **Replacing an existing track** (e.g. re-bake tonight's track with a better blend take):
 
