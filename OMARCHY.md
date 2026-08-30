@@ -119,7 +119,7 @@ s.waitForBoot {
   } {
     ~recNode.free;   // flushes + finalizes the file
     s.sync;
-    ~recSF.close;
+    ~recSF.notNil.if { ~recSF.close };
     ~recNode = nil;
     ~recSF = nil;
     "STOP -> % (exact take)".format(~recPath).postln;
