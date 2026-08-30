@@ -96,7 +96,7 @@ s.waitForBoot {
       DiskOut.ar(buffer, In.ar(0, numChans))
     }).add;
     s.sync;
-    ~recStart = s.elapsedTime;
+    ~recStart = SystemClock.beats;
     recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
     ~recBuf = buf;
     ~recNode = recNode;
@@ -120,7 +120,7 @@ s.waitForBoot {
       "warning: no ~recStart (old-style recording) — writing whole buffer".postln;
       frames = ~recBuf.numFrames;
     } {
-      frames = ((s.elapsedTime - ~recStart) * s.sampleRate).asInteger + 4410; // 0.1s pad
+      frames = ((SystemClock.beats - ~recStart) * s.sampleRate).asInteger + 4410; // 0.1s pad
       frames = frames min: ~recBuf.numFrames;
     };
     ~recNode.free;
