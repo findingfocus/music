@@ -67,34 +67,33 @@ rclone lsl ffmedia          # lists bucket contents
 
 ### 5. Test recording from SuperCollider
 
-Paste into sclang while SuperDirt is running (any d-pattern works). Records exactly what SC outputs to the speakers — the full d1..d20 mix, no mic involved:
+Paste into sclang while SuperDirt is running (any d-pattern works). Uses `s.record`, which taps scsynth's actual output stream — exactly what goes to your speakers, immune to group-ordering issues:
 
 ```supercollider
-// === findingfocus quick recorder ===
-// records SC output (bus 0) for DUR seconds → ~/recordings/<stamp>.wav
+// === findingfocus recorder ===
+// records SC output for DUR seconds → ~/recordings/<stamp>.wav
 (
 var dur = 20.0;   // <-- record length, seconds
 s.waitForBoot {
-  var stamp = Date.getDate.stamp;                       // "2026-08-29-195512"
   var dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
-  var path = (dir +/+ (stamp ++ ".wav")).fullPath;
-  var buf = Buffer.alloc(s, (s.sampleRate * dur).asInteger, 2);
-  SynthDef(\fftake, { |bufnum|
-    RecordBuf.ar(In.ar(0, 2), bufnum, loop: 0, doneAction: 2)
-  }).add;
-  s.sync;
+  dir.createDirAll;
+  var path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
   "recording %s s -> %".format(dur, path).postln;
-  Synth(\fftake, [\bufnum, buf], s.defaultGroup);
+  s.record(path, inputBus: 0, numChannels: 2);
   dur.wait;
-  s.sync;
-  buf.write(path, "WAVE", "int16");
-  buf.free;
+  s.stopRecording;
   "done: %".format(path).postln;
 };
 )
 ```
 
-`In.ar(0, 2)` reads output bus 0 — the summed mix of every synth — into a buffer; when full, `doneAction: 2` frees it; then it's written as a 16-bit WAV. To capture a whole set, set `dur` to its length and start at the same time as the stream.
+Run it: cursor inside the block, **Ctrl+Enter** (Linux). If the resulting WAV is silent, check the volume:
+
+```bash
+ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_volume|max_volume"
+```
+
+`max_volume` should be something like `-1.0 dB`, not `-91 dB`. If it stays silent, the Tidal server making sound isn't `s` — ensure this script and the music share the same server. To capture a whole set, set `dur` to its length and start at the same time as the stream.
 
 ### 6. Test the pipeline without uploading
 
