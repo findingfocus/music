@@ -154,6 +154,23 @@ curl -s https://media.findingfocus.music/tracks.json | head -c 400
    ~/bin/publish-nightly.sh --title "aurora veins"   # or name it yourself
    ```
 
+**Seamless loops**
+
+Every published mp3 is a seamless loop: the first and last ~2s of the take are crossfaded together (`[tail][head]acrossfade`) and the file is rebuilt as `blend + middle + blend`, so the end→start wrap never clicks. Adjust the width with `--fade N` (seconds) or `FF_FADE`; `--fade 0` reverts to the raw take.
+
+**Replacing an existing track** (e.g. re-bake tonight's track with a better blend take):
+
+```bash
+~/bin/publish-nightly.sh --replace 2026-08-29_1 --dry-run   # preview what overwrites
+~/bin/publish-nightly.sh --replace 2026-08-29_1             # re-encode + overwrite in place
+```
+
+The slug is the date-and-index as it appears on the mp3 (`nightly/2026-08-29_1.mp3`). A replace
+re-encodes the newest wav through the same blend pipeline, overwrites the exact same mp3/peaks
+keys (with `Cache-Control: no-cache` so the CDN re-fetches), and edits only that entry in
+`tracks.json` — id, date, position and the index counter are untouched. If no code is found for the
+track's date, the existing `sub`/`source` are kept. `--title "..."` renames on replace.
+
 **Naming & tracking notes**
 
 - Titles come from a pre-generated table indexed by a publish counter stored in `tracks.json` itself (`max(index)+1`). No day-tracking on your part; skipped nights don't matter. Index 1 = `Wheeler Drift`. The full table cycles at 2,275 names (~6 years).
