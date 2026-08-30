@@ -54,6 +54,13 @@ body{
   backdrop-filter: blur(6px);
   overflow: hidden;
   box-shadow: 0 30px 80px rgba(0,0,0,0.5);
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+.app.ready{
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ---- tab bar (mimics editor tabs) ---- */

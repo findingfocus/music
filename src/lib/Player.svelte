@@ -1,9 +1,11 @@
 <script lang="ts">
-	import { onDestroy, onMount } from 'svelte';
+	import { onDestroy, onMount, createEventDispatcher } from 'svelte';
 	import type WSType from 'wavesurfer.js';
 	import { renderProfessionalWave, setAuthoredPeaks } from './render-wave';
 	import { loadTracks, type Track } from './tracks';
 	import { THEME } from './theme';
+
+	const dispatch = createEventDispatcher();
 
 	let waveformEl!: HTMLDivElement;
 	let visualizerEl!: HTMLCanvasElement;
@@ -192,6 +194,7 @@
 			if (disposed) return;
 			tracks = next;
 			if (ws && next.length > 0) loadTrack(Math.min(current, next.length - 1), ws.isPlaying());
+			dispatch('ready');
 		});
 		(async () => {
 			try {
