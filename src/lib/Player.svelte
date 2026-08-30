@@ -6,6 +6,7 @@
 	import { THEME } from './theme';
 
 	let waveformEl!: HTMLDivElement;
+	let visualizerEl!: HTMLCanvasElement;
 	let playBtn!: HTMLButtonElement;
 	let prevBtn!: HTMLButtonElement;
 	let nextBtn!: HTMLButtonElement;
@@ -23,8 +24,14 @@
 	let statusHtml = $state('paused');
 	let overlayOpen = $state(false);
 	let codeCopied = $state(false);
+	let visualizerOn = $state(true);
 	let volume = $state(1);
 	let tracks = $state<Track[]>([]);
+	let audioContext: AudioContext | null = null;
+	let analyser: AnalyserNode | null = null;
+	let visualizerFrame = 0;
+	let smoothWave: Float32Array | null = null;
+	let wavePeak = 0;
 
 	const track = $derived(tracks[current]);
 	const trackCountLabel = $derived(`[${current + 1}/${tracks.length}]`);
@@ -83,6 +90,72 @@
 		applyLoopAttr();
 	}
 
+	async function togglePlay() {
+		if (audioContext?.state === 'suspended') await audioContext.resume();
+		ws?.playPause();
+	}
+
+	function drawVisualizer() {
+		const canvas = visualizerEl;
+		if (canvas && analyser && visualizerOn) {
+			const rect = canvas.getBoundingClientRect();
+			const ratio = window.devicePixelRatio || 1;
+			if (canvas.width !== Math.round(rect.width * ratio) || canvas.height !== Math.round(rect.height * ratio)) {
+				canvas.width = Math.round(rect.width * ratio);
+				canvas.height = Math.round(rect.height * ratio);
+			}
+			const ctx = canvas.getContext('2d');
+			if (ctx) {
+				ctx.clearRect(0, 0, canvas.width, canvas.height);
+				const tdata = new Uint8Array(analyser.frequencyBinCount * 2);
+				analyser.getByteTimeDomainData(tdata);
+				const bars = 14;
+				const half = bars / 2;
+				if (!smoothWave || smoothWave.length !== bars) {
+					smoothWave = new Float32Array(bars).fill(0);
+				}
+				const w = canvas.width;
+				const h = canvas.height;
+				const mid = h / 2;
+				const slot = w / bars;
+				const barWidth = Math.max(1.5 * ratio, slot * 0.38);
+				const step = tdata.length / bars;
+				const targets = new Array(bars);
+				for (let i = 0; i < bars; i++) {
+					const from = Math.floor(i * step);
+					const to = Math.min(tdata.length, Math.floor((i + 1) * step));
+					let s = 0;
+					for (let j = from; j < to; j++) s += tdata[j];
+					const raw = Math.abs((s / (to - from) - 128) / 128);
+					const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
+					const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
+					targets[i] = playing ? Math.pow(raw, 0.8) * taper : 0;
+				}
+				const loud = Math.max(...targets);
+				if (loud > wavePeak) wavePeak = wavePeak + (loud - wavePeak) * 0.4;
+				else wavePeak = wavePeak * 0.995;
+				const scale = wavePeak > 0.02 ? 1.05 / wavePeak : 1;
+				for (let i = 0; i < bars; i++) {
+					const pv = targets[Math.max(0, i - 1)];
+					const nx = targets[Math.min(bars - 1, i + 1)];
+					const sp = (pv + targets[i] * 2 + nx) / 4;
+					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * 0.08;
+				}
+				const idle = 0.06 * h;
+				for (let i = 0; i < bars; i++) {
+					const barH = Math.max(idle, smoothWave[i] * scale * h * 0.78);
+					const x = i * slot + (slot - barWidth) / 2;
+					ctx.fillStyle = '#8E7093';
+					const r = Math.min(barWidth / 2, barH / 2);
+					ctx.beginPath();
+					ctx.roundRect(x, mid - barH / 2, barWidth, barH, r);
+					ctx.fill();
+				}
+			}
+		}
+		if (!disposed) visualizerFrame = requestAnimationFrame(drawVisualizer);
+	}
+
 	function openOverlay() {
 		overlayOpen = true;
 	}
@@ -138,6 +211,21 @@
 					renderFunction: renderProfessionalWave
 				});
 				const media = ws.getMediaElement();
+				media.crossOrigin = 'anonymous';
+				try {
+					audioContext = new AudioContext();
+					const source = audioContext.createMediaElementSource(media);
+					analyser = audioContext.createAnalyser();
+					analyser.fftSize = 1024;
+					analyser.smoothingTimeConstant = 0.84;
+					source.connect(analyser);
+					analyser.connect(audioContext.destination);
+					drawVisualizer();
+				} catch (error) {
+					console.warn('visualizer unavailable:', error);
+					audioContext = null;
+					analyser = null;
+				}
 				let seekMuted = false;
 				let seekRampId = 0;
 				const muteForSeek = () => {
@@ -180,6 +268,8 @@
 					curTime = formatTime(t);
 				});
 				ws.on('play', () => {
+					void audioContext?.resume();
+					if (!visualizerFrame) drawVisualizer();
 					playing = true;
 					statusHtml =
 						'playing <span class="state-track">&gt; ' +
@@ -218,6 +308,10 @@
 			cleanupSeekAudio?.();
 			cleanupSeekAudio = null;
 			ws?.destroy();
+		}
+		if (typeof window !== 'undefined') {
+			cancelAnimationFrame(visualizerFrame);
+			void audioContext?.close();
 		}
 		ws = null;
 	});
@@ -290,24 +384,32 @@
 		{/if}
 	</div>
 
-	<div class="transport">
-		<button class="tbtn" title="Previous" bind:this={prevBtn} onclick={() => step(-1)}>
-			<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
-		</button>
-		<button class="tbtn play" title={playing ? 'Pause' : 'Play'} bind:this={playBtn} onclick={() => ws?.playPause()}>
-			{#if playing}
-				<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
-			{:else}
-				<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
-			{/if}
-		</button>
-		<button class="tbtn" title="Next" bind:this={nextBtn} onclick={() => step(1)}>
-			<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6v12l8.5-6z"/></svg>
-		</button>
+	<div class="transport-row">
+		<div class="transport">
+			<button class="tbtn" title="Previous" bind:this={prevBtn} onclick={() => step(-1)}>
+				<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h2v12H6zm3.5 6l8.5 6V6z"/></svg>
+			</button>
+			<button class="tbtn play" title={playing ? 'Pause' : 'Play'} bind:this={playBtn} onclick={togglePlay}>
+				{#if playing}
+					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M6 5h4v14H6zm8 0h4v14h-4z"/></svg>
+				{:else}
+					<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+				{/if}
+			</button>
+			<button class="tbtn" title="Next" bind:this={nextBtn} onclick={() => step(1)}>
+				<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6v12l8.5-6z"/></svg>
+			</button>
+		</div>
+		{#if visualizerOn}
+			<div class="visualizer-frame" aria-label="Live audio spectrum">
+				<canvas bind:this={visualizerEl}></canvas>
+			</div>
+		{/if}
 	</div>
 
 	<div class="loop-row">
 		<button class="on" onclick={toggleLoop}>{loopMode === 'all' ? 'loop: all tracks' : 'loop: this track'}</button>
+		<button class="on" onclick={() => (visualizerOn = !visualizerOn)}>{visualizerOn ? 'viz: on' : 'viz: off'}</button>
 	</div>
 </div>
 
