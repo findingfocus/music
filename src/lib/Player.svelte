@@ -175,8 +175,9 @@
 					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * 0.08;
 				}
 				const idle = 0.04 * h;
+				const mobileGain = analyser ? 1 : 0.65;
 				for (let i = 0; i < bars; i++) {
-					const barH = Math.max(idle, smoothWave[i] * scale * h * 0.7);
+					const barH = Math.max(idle, smoothWave[i] * scale * h * 0.7 * mobileGain);
 					const x = i * slot + (slot - barWidth) / 2;
 					ctx.fillStyle = 'rgba(142,112,147,0.55)';
 					const r = Math.min(barWidth / 2, barH / 2);
