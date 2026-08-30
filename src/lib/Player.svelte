@@ -19,7 +19,7 @@
 	let cleanupSeekAudio: (() => void) | null = null;
 
 	let current = $state(0);
-	let loopMode = $state<'all' | 'one'>('all');
+	let loopMode = $state<'all' | 'one'>('one');
 	let playing = $state(false);
 	let curTime = $state('0:00');
 	let durTime = $state('0:00');
@@ -426,12 +426,12 @@
 			<button type="button" class="copy-btn" aria-label="Close TidalCycles information" title="Close" onclick={closeInfoOverlay}>
 				<svg viewBox="0 0 16 16" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M3 3l10 10M13 3 3 13" stroke-linecap="round"/></svg>
 			</button>
-			<h2>Music Made with Tidal Cycles</h2>
+			<h2>Made with Tidal Cycles</h2>
 			<p>
 				<a class="info-link" href="https://tidalcycles.org/" target="_blank" rel="noopener">Tidal Cycles</a> is a free and open source live coding environment for programming algorithmic musical patterns. Tidal uses the <a class="info-link" href="https://supercollider.github.io/" target="_blank" rel="noopener">SuperCollider</a> synthesis engine and the <a class="info-link" href="https://github.com/musikinformatik/SuperDirt" target="_blank" rel="noopener">SuperDirt</a> framework under the hood to generate and process sounds.
 			</p>
 			<p>
-				The tracks on this site were recorded with SuperCollider, specifically for a <a class="info-link" href="https://youtube.com/findingfocus" target="_blank" rel="noopener">coding live stream</a> where I program my new video game, <a class="info-link" href="https://steam.tashio.dev" target="_blank" rel="noopener">Tashio Tempo</a>.
+				The tracks on this site were recorded with SuperCollider, specifically from a <a class="info-link" href="https://youtube.com/findingfocus" target="_blank" rel="noopener">coding live stream</a> where I program my new video game, <a class="info-link" href="https://steam.tashio.dev" target="_blank" rel="noopener">Tashio Tempo</a>.
 			</p>
 			<h3>Try it yourself</h3>
 			<a class="info-link" href="https://tidalcycles.org/" target="_blank" rel="noopener">visit tidalcycles.org</a>
