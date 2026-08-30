@@ -64,6 +64,12 @@
 		setAuthoredPeaks(t.peaks);
 		updateMediaSession(t);
 		ws?.load(t.url, [t.peaks.map((p) => p / 100)], t.duration);
+		applyLoopAttr();
+	}
+
+	function applyLoopAttr() {
+		const el = ws?.getMediaElement();
+		if (el) el.loop = loopMode === 'one';
 	}
 
 	function step(delta: number) {
@@ -73,6 +79,7 @@
 
 	function toggleLoop() {
 		loopMode = loopMode === 'all' ? 'one' : 'all';
+		applyLoopAttr();
 	}
 
 	function openOverlay() {
@@ -131,6 +138,7 @@
 				});
 				ws.on('ready', () => {
 					durTime = formatTime(ws?.getDuration() ?? 0);
+					applyLoopAttr();
 					if (pendingPlay) {
 						pendingPlay = false;
 						ws?.play();
