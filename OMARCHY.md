@@ -110,6 +110,17 @@ ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_vol
 
 `max_volume` should be something like `-1.0 dB`, not `-91 dB`. To capture a whole set, set `dur` to its length and start at the same time as the stream.
 
+#### Troubleshooting: "Command line parse failed"
+
+That error is **scsynth failing to boot**, not the recorder: it appears whenever an eval re-boots a dead server. The first recording works and later ones fail whenever the server went down. The red "R" record button only shows while a server is running — if you don't see it, the server is down. To recover and record:
+
+```supercollider
+`pkill -9 -f scsynth; pkill -9 -f jackd`;          // kill zombie servers
+Server.default.reboot;                              // boot again — read any "--> token" in the log
+```
+
+Then re-run the recorder block above. If boot still fails, paste the token printed after `Command line parse failed -->`.
+
 ### 6. Test the pipeline without uploading
 
 ```bash
