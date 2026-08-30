@@ -108,19 +108,21 @@ s.waitForBoot {
 ```supercollider
 // REC STOP — Ctrl+Enter just before the next downbeat (whole number of cycles elapsed)
 (
-var dir, path;
-if (~recBuf.isNil) {
-  "no recorder running".postln;
-} {
-  dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
-  path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
-  ~recNode.free;
-  s.sync;
-  ~recBuf.write(path, "WAVE", "int16");
-  ~recBuf.free;
-  ~recBuf = nil;
-  ~recNode = nil;
-  "STOP -> %".format(path).postln;
+s.waitForBoot {
+  var dir, path;
+  if (~recBuf.isNil) {
+    "no recorder running".postln;
+  } {
+    dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
+    path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
+    ~recNode.free;
+    s.sync;
+    ~recBuf.write(path, "WAVE", "int16");
+    ~recBuf.free;
+    ~recBuf = nil;
+    ~recNode = nil;
+    "STOP -> %".format(path).postln;
+  };
 };
 )
 ```
