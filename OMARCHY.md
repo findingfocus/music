@@ -79,7 +79,7 @@ s.waitForBoot {
   dir.createDirAll;
   var path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
   "recording %s s -> %".format(dur, path).postln;
-  s.record(path, 0, 2); // path, bus, numChannels — the canonical arguments
+  s.record(path, 0); // bus 0; numChannels defaults to all server outputs
   dur.wait;
   s.stopRecording;
   "done: %".format(path).postln;
@@ -87,13 +87,20 @@ s.waitForBoot {
 )
 ```
 
-Run it: cursor inside the block, **Ctrl+Enter** (Linux). If the resulting WAV is silent, check the volume:
+Run it: cursor inside the block, **Ctrl+Enter** (Linux). If the resulting WAV is silent, check where your audio lives first:
+
+```supercollider
+s.options.numOutputBusChannels.postln;   // how many output channels the server has
+s.scope;                                  // watch which scope channels move as music plays
+```
+
+The recorder captures the full output width (`s.record(path, 0)` uses all output channels by default), so whatever bus the music is on gets recorded; the publish script downmixes to stereo. Check the volume:
 
 ```bash
 ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_volume|max_volume"
 ```
 
-`max_volume` should be something like `-1.0 dB`, not `-91 dB`. If it stays silent, the Tidal server making sound isn't `s` — ensure this script and the music share the same server. To capture a whole set, set `dur` to its length and start at the same time as the stream.
+`max_volume` should be something like `-1.0 dB`, not `-91 dB`. If you hit a "Command line parse failed" error, press Cmd-. / Ctrl-., run `s.reboot`, then re-evaluate the block. To capture a whole set, set `dur` to its length and start at the same time as the stream.
 
 ### 6. Test the pipeline without uploading
 
