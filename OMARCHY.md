@@ -75,30 +75,52 @@ rclone lsl ffmedia:findingfocus-music   # lists bucket contents
 
 ### 5. Test recording from SuperCollider
 
-Paste into sclang while SuperDirt is running (any d-pattern works). Records the SC output mix to `~/recordings/<stamp>.wav` using a manual `DiskOut` synth (placed at the root tail so it reads the finished mix — no `Server.record`/`Recorder` machinery):
+Paste into sclang while SuperDirt is running (any d-pattern works). Two blocks, run by cursor + **Ctrl+Enter** (Linux): **REC START** allocates a write buffer and starts writing the SC output mix, **REC STOP** writes the finished mix to `~/recordings/<stamp>.wav` using a manual `DiskOut` synth (placed at the root tail so it reads the finished mix — no `Server.record`/`Recorder` machinery).
+
+Start exactly on a downbeat; stop a touch early, just before the next downbeat after a whole number of cycles (being late clips the next downbeat transient).
 
 ```supercollider
+// REC START — Ctrl+Enter a moment before (or exactly on) a downbeat
 (
-var dur = 20.0;   // <-- record length, seconds
 var numChans = 2;
+var maxLen = 600;   // <-- max take length, seconds
 s.waitForBoot {
-  var dir, path, buf, recNode;
+  var dir, buf, recNode;
+  if (~recBuf.notNil) {
+    "recorder already running — STOP first".postln;
+  } {
+    dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
+    buf = Buffer.alloc(s, (s.sampleRate * maxLen).asInteger, numChans);
+    s.sync;
+    SynthDef(\ffdiskrec, { |buffer|
+      DiskOut.ar(buffer, In.ar(0, numChans))
+    }).add;
+    s.sync;
+    recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
+    ~recBuf = buf;
+    ~recNode = recNode;
+    "REC ON (max %s s)".format(maxLen).postln;
+  };
+};
+)
+```
+
+```supercollider
+// REC STOP — Ctrl+Enter just before the next downbeat (whole number of cycles elapsed)
+(
+var dir, path;
+if (~recBuf.isNil) {
+  "no recorder running".postln;
+} {
   dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
   path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
-  buf = Buffer.alloc(s, (s.sampleRate * dur).asInteger, numChans);
+  ~recNode.free;
   s.sync;
-  SynthDef(\ffdiskrec, { |buffer|
-    DiskOut.ar(buffer, In.ar(0, numChans))
-  }).add;
-  s.sync;
-  recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
-  "recording %s s -> %".format(dur, path).postln;
-  dur.wait;
-  s.sync;
-  buf.write(path, "WAVE", "int16");
-  buf.free;
-  recNode.free;
-  "done: %".format(path).postln;
+  ~recBuf.write(path, "WAVE", "int16");
+  ~recBuf.free;
+  ~recBuf = nil;
+  ~recNode = nil;
+  "STOP -> %".format(path).postln;
 };
 )
 ```
@@ -109,7 +131,7 @@ Run it: cursor inside the block, **Ctrl+Enter** (Linux). Verify the file is loud
 ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_volume|max_volume"
 ```
 
-`max_volume` should be something like `-1.0 dB`, not `-91 dB`. To capture a whole set, set `dur` to its length and start at the same time as the stream.
+`max_volume` should be something like `-1.0 dB`, not `-91 dB`. To capture a whole set: REC START on a downbeat, REC STOP just before the next downbeat after a whole number of cycles.
 
 Notes from the sessions that worked:
 
@@ -147,7 +169,7 @@ curl -s https://media.findingfocus.music/tracks.json | head -c 400
 ## Every night
 
 1. **Make the code**: save/commit the set's Tidal code in your tidal repo at `~/git/tidal/<date>.tidal` (e.g. `~/git/tidal/2026-08-29.tidal`). The script checks that file first (then `~/tidal/`, then fetches `<date>.tidal` from the `findingfocus/tidal` repo). The last 8 lines get attached to the track for the code overlay + copy button. No code found → a placeholder line is used and no source is attached.
-2. **Record**: snapshot the audio with the SC recorder (set `dur` to the set length).
+2. **Record**: REC START on a downbeat, REC STOP just before the next downbeat after a whole number of cycles (stop early — being late clips the next transient).
 3. **Publish**:
    ```bash
    ~/bin/publish-nightly.sh   # auto-name from the table
@@ -156,7 +178,7 @@ curl -s https://media.findingfocus.music/tracks.json | head -c 400
 
 **Seamless loops**
 
-Every published mp3 is a seamless loop: the first and last ~2s of the take are crossfaded together (`[tail][head]acrossfade`) and the file is rebuilt as `blend + middle + blend`, so the end→start wrap never clicks. Adjust the width with `--fade N` (seconds) or `FF_FADE`; `--fade 0` reverts to the raw take.
+With the start-on-a-downbeat / stop-before-the-next-downbeat ritual the raw take already wraps cleanly, so **no fade is applied by default** (`FF_FADE=0`). If a take gets cut mid-cycle, re-enable an explicit crossfade wrap with `--fade N` (seconds) or `FF_FADE=2.0` — the first and last ~N seconds are crossfaded together (`[tail][head]acrossfade`) and the file is rebuilt as `blend + middle + blend`, so the end→start wrap never clicks.
 
 **Replacing an existing track** (e.g. re-bake tonight's track with a better blend take):
 
