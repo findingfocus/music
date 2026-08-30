@@ -67,40 +67,48 @@ rclone lsl ffmedia          # lists bucket contents
 
 ### 5. Test recording from SuperCollider
 
-Paste into sclang while SuperDirt is running (any d-pattern works). Uses `s.record`, which taps scsynth's actual output stream — exactly what goes to your speakers, immune to group-ordering issues:
+Paste into sclang while SuperDirt is running (any d-pattern works). Records the SC output mix to `~/recordings/<stamp>.wav` using a manual `DiskOut` synth (placed at the root tail so it reads the finished mix — no `Server.record`/`Recorder` machinery):
 
 ```supercollider
-// === findingfocus recorder ===
-// records SC output for DUR seconds → ~/recordings/<stamp>.wav
 (
 var dur = 20.0;   // <-- record length, seconds
+var numChans = 2;
 s.waitForBoot {
   var dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
   dir.createDirAll;
   var path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
+  var buf = Buffer.alloc(s, (s.sampleRate * dur).asInteger * numChans, numChans);
+  s.sync;
+  SynthDef(\ffdiskrec, { |buffer|
+    DiskOut.ar(buffer, In.ar(0, numChans))
+  }).add;
+  s.sync;
+  var recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
   "recording %s s -> %".format(dur, path).postln;
-  s.record(path, 0); // bus 0; numChannels defaults to all server outputs
   dur.wait;
-  s.stopRecording;
+  s.sync;
+  buf.write(path, "WAVE", "int16");
+  buf.free;
+  recNode.free;
   "done: %".format(path).postln;
 };
 )
 ```
 
-Run it: cursor inside the block, **Ctrl+Enter** (Linux). If the resulting WAV is silent, check where your audio lives first:
+Run it: cursor inside the block, **Ctrl+Enter** (Linux). If silent, check where the audio lives:
 
 ```supercollider
-s.options.numOutputBusChannels.postln;   // how many output channels the server has
-s.scope;                                  // watch which scope channels move as music plays
+s.options.numOutputBusChannels.postln;   // number of output channels
+s.scope;                                  // watch which channels move as music plays
 ```
 
-The recorder captures the full output width (`s.record(path, 0)` uses all output channels by default), so whatever bus the music is on gets recorded; the publish script downmixes to stereo. Check the volume:
+If `s.record`/recording gives a "Command line parse failed" error, the manual `DiskOut` block above avoids that path entirely. Verify the file:
 
 ```bash
 ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_volume|max_volume"
 ```
 
-`max_volume` should be something like `-1.0 dB`, not `-91 dB`. If you hit a "Command line parse failed" error, press Cmd-. / Ctrl-., run `s.reboot`, then re-evaluate the block. To capture a whole set, set `dur` to its length and start at the same time as the stream.
+`max_volume` should be something like `-1.0 dB`, not `-91 dB`. To capture a whole set, set `dur` to its length and start at the same time as the stream.
 
 ### 6. Test the pipeline without uploading
 
