@@ -83,7 +83,7 @@ Start exactly on a downbeat; stop a touch early, just before the next downbeat a
 // REC START — Ctrl+Enter a moment before (or exactly on) a downbeat
 (
 var numChans = 2;
-var maxLen = 600;   // <-- max take length, seconds
+var maxLen = 240;   // <-- max take length, seconds (RAM cap; writes only what's recorded)
 s.waitForBoot {
   var dir, buf, recNode;
   if (~recBuf.notNil) {
@@ -96,6 +96,7 @@ s.waitForBoot {
       DiskOut.ar(buffer, In.ar(0, numChans))
     }).add;
     s.sync;
+    ~recStart = s.elapsedTime;
     recNode = Synth.tail(s, \ffdiskrec, [\buffer, buf]);
     ~recBuf = buf;
     ~recNode = recNode;
@@ -109,19 +110,27 @@ s.waitForBoot {
 // REC STOP — Ctrl+Enter just before the next downbeat (whole number of cycles elapsed)
 (
 s.waitForBoot {
-  var dir, path;
+  var dir, path, frames;
   if (~recBuf.isNil) {
     "no recorder running".postln;
   } {
     dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
     path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
+    if (~recStart.isNil) {
+      "warning: no ~recStart (old-style recording) — writing whole buffer".postln;
+      frames = ~recBuf.numFrames;
+    } {
+      frames = ((s.elapsedTime - ~recStart) * s.sampleRate).asInteger + 4410; // 0.1s pad
+      frames = frames min: ~recBuf.numFrames;
+    };
     ~recNode.free;
     s.sync;
-    ~recBuf.write(path, "WAVE", "int16");
+    ~recBuf.write(path, "WAVE", "int16", 0, frames);
     ~recBuf.free;
+    ~recStart = nil;
     ~recBuf = nil;
     ~recNode = nil;
-    "STOP -> %".format(path).postln;
+    "STOP -> % (% s)".format(path, (frames / s.sampleRate).round(0.1)).postln;
   };
 };
 )
@@ -138,6 +147,7 @@ ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_vol
 Notes from the sessions that worked:
 
 - `Buffer.alloc(server, n, channels)` takes **frames**, not samples — don't multiply by `numChans` or the file comes out twice as long with its second half silent.
+- `Buffer:write` dumps the **whole buffer** by default — the STOP block passes `numFrames` so only the recorded take is written. Sanity check: a 90s stereo take at 48k int16 is ~17MB. A ~115MB file means the full 600s buffer was dumped (bookkeeping regressed).
 - If you reboot the server while Tidal patterns are still playing, the new server comes up without SuperDirt's synthdefs and you'll see a storm of `SynthDef not found` errors. Easiest recovery: `hush` in Tidal, then quit and reopen the SCIDE (its startup file boots the server + SuperDirt cleanly), then restart the Tidal session.
 
 ### 6. Test the pipeline without uploading
