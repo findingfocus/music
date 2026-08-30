@@ -137,7 +137,7 @@ fi
 
 rclone copyto "$TMP/out.mp3" "$REMOTE:$MP3_KEY" --s3-no-check-bucket
 rclone copyto "$TMP/peaks.json" "$REMOTE:$PEAKS_KEY" --s3-no-check-bucket
-rclone copyto "$TMP/merged.json" "$REMOTE:$R2_TRACKS" --s3-no-check-bucket
+rclone copyto "$TMP/merged.json" "$REMOTE:$R2_TRACKS" --s3-no-check-bucket --header-upload "Cache-Control: no-cache" || rclone copyto "$TMP/merged.json" "$REMOTE:$R2_TRACKS" --s3-no-check-bucket
 
 echo
 echo "published: $TITLE ($ID)"
