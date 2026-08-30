@@ -79,7 +79,7 @@ s.waitForBoot {
   dir.createDirAll;
   var path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
   "recording %s s -> %".format(dur, path).postln;
-  s.record(path, inputBus: 0, numChannels: 2);
+  s.record(path, 0, 2); // path, bus, numChannels — the canonical arguments
   dur.wait;
   s.stopRecording;
   "done: %".format(path).postln;
