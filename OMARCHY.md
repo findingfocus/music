@@ -132,6 +132,12 @@ s.options.numOutputBusChannels = 2;   // set 8 if your SuperDirt uses 8 channels
 s.reboot;
 ```
 
+If you reboot while Tidal patterns are still playing, the fresh server comes up without SuperDirt's synthdefs and you get a storm of `SynthDef not found` / `Node not found` errors. Recover in order:
+
+1. `hush` in the Tidal editor (silence patterns).
+2. In SC: `s.quit;` then a fresh `( 1.wait; s.boot; s.sync; ~dirt = SuperDirt.start; )` to bring the engine back.
+3. Restart the Tidal session so it reconnects to port 57120.
+
 ### 6. Test the pipeline without uploading
 
 ```bash
