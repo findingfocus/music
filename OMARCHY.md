@@ -75,18 +75,20 @@ rclone lsl ffmedia:findingfocus-music   # lists bucket contents
 
 ### 5. Test recording from SuperCollider
 
-Paste into sclang while SuperDirt is running (any d-pattern works). Two blocks, run by cursor + **Ctrl+Enter** (Linux): **REC START** uses SuperCollider's built-in server recorder and opens a `~/recordings/<stamp>.wav`; **REC STOP** stops and finalizes it. The file on disk is exactly the take — no custom buffers, clocks, or trimming.
+Paste this one block into sclang while SuperDirt is running (any d-pattern works). Run it with **Ctrl+Enter** (Linux): the first run starts recording a `~/recordings/<stamp>.wav`; the next run stops and finalizes it. The file on disk is exactly the take — no custom buffers, clocks, or trimming.
 
 Start exactly on a downbeat; stop a touch early, just before the next downbeat after a whole number of cycles (being late clips the next downbeat transient).
 
 ```supercollider
-// REC START — Ctrl+Enter a moment before (or exactly on) a downbeat
+// REC TOGGLE — run once to start, again to stop
 (
 var numChans = 2;
+var dir, path;
 s.waitForBoot {
-  var dir, path;
   if (s.isRecording) {
-    "recorder already running — STOP first".postln;
+    s.stopRecording;
+    "STOP -> % (exact take)".format(~recPath).postln;
+    ~recPath = nil;
   } {
     dir = PathName(thisProcess.platform.userHomeDir) +/+ "recordings";
     path = (dir +/+ (Date.getDate.stamp ++ ".wav")).fullPath;
@@ -96,21 +98,6 @@ s.waitForBoot {
     s.record(path: path, numChannels: numChans);
     ~recPath = path;
     "REC ON -> %".format(path).postln;
-  };
-};
-)
-```
-
-```supercollider
-// REC STOP — Ctrl+Enter just before the next downbeat
-(
-s.waitForBoot {
-  if (s.isRecording.not) {
-    "no recorder running".postln;
-  } {
-    s.stopRecording;
-    "STOP -> % (exact take)".format(~recPath).postln;
-    ~recPath = nil;
   };
 };
 )
@@ -127,7 +114,7 @@ ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_vol
 Notes from the sessions that worked:
 
 - The built-in `Server.record` handles the disk buffer, file format, and output-bus capture. `Server.stopRecording` closes the file and updates its WAV header. An 8s test take is ~1.5MB.
-- If a recording is already active, REC START refuses to replace it. Run REC STOP first.
+- Run the toggle once on the starting downbeat and again just before the next downbeat after a whole number of cycles.
 - If you reboot the server while Tidal patterns are still playing, the new server comes up without SuperDirt's synthdefs and you'll see a storm of `SynthDef not found` errors. Easiest recovery: `hush` in Tidal, then quit and reopen the SCIDE (its startup file boots the server + SuperDirt cleanly), then restart the Tidal session.
 
 ### 6. Test the pipeline without uploading
