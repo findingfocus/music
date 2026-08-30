@@ -171,7 +171,7 @@
 						const peak = currentPeak * 0.65 + localPeak * 0.35;
 						const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
-						targets[i] = playing ? Math.pow(peak / 100, 0.8) * taper : 0;
+						targets[i] = playing ? (peak / 100) * taper : 0;
 					}
 				}
 				const loud = Math.max(...targets);
