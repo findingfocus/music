@@ -2,6 +2,7 @@
 set -euo pipefail
 
 REMOTE="${FF_RCLONE_REMOTE:-ffmedia}"
+BUCKET="${FF_R2_BUCKET:-findingfocus-music}"
 R2_TRACKS="tracks.json"
 R2_DIR="nightly"
 R2_BASE="${FF_R2_BASE:-https://media.findingfocus.music}"
@@ -134,17 +135,17 @@ PY
 
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "--- dry run: would upload ---"
-  echo "  $REMOTE:$MP3_KEY"
-  echo "  $REMOTE:$PEAKS_KEY"
-  echo "  $REMOTE:$R2_TRACKS"
+  echo "  $REMOTE:$BUCKET/$MP3_KEY"
+  echo "  $REMOTE:$BUCKET/$PEAKS_KEY"
+  echo "  $REMOTE:$BUCKET/$R2_TRACKS"
   python3 -c "import json;d=json.load(open('$TMP/merged.json'));print('merged tracks.json entries:',len(d));print('newest:',d[0]['id'],d[0]['title'])"
   echo "ok (nothing uploaded)"
   exit 0
 fi
 
-rclone copyto "$TMP/out.mp3" "$REMOTE:$MP3_KEY" --s3-no-check-bucket
-rclone copyto "$TMP/peaks.json" "$REMOTE:$PEAKS_KEY" --s3-no-check-bucket
-rclone copyto "$TMP/merged.json" "$REMOTE:$R2_TRACKS" --s3-no-check-bucket --header-upload "Cache-Control: no-cache" || rclone copyto "$TMP/merged.json" "$REMOTE:$R2_TRACKS" --s3-no-check-bucket
+rclone copyto "$TMP/out.mp3" "$REMOTE:$BUCKET/$MP3_KEY" --s3-no-check-bucket
+rclone copyto "$TMP/peaks.json" "$REMOTE:$BUCKET/$PEAKS_KEY" --s3-no-check-bucket
+rclone copyto "$TMP/merged.json" "$REMOTE:$BUCKET/$R2_TRACKS" --s3-no-check-bucket --header-upload "Cache-Control: no-cache" || rclone copyto "$TMP/merged.json" "$REMOTE:$BUCKET/$R2_TRACKS" --s3-no-check-bucket
 
 echo
 echo "published: $TITLE ($ID)"

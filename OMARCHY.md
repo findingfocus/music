@@ -48,21 +48,29 @@ done
 rclone config create ffmedia s3 provider Cloudflare \
   access_key_id=<R2_ACCESS_KEY_ID> secret_access_key=<R2_SECRET_ACCESS_KEY> \
   endpoint=https://<R2_ACCOUNT_ID>.r2.cloudflarestorage.com \
-  region=auto bucket=<BUCKET_NAME>
+  region=auto
+```
+
+**Important: do NOT set a `bucket =` line in the remote.** On this box that makes rclone drop the object key on every write (`Key must not be empty`). Instead the bucket goes in the **path**: `ffmedia:findingfocus-music/...`.
+
+Also confirm the remote has no leftover `bucket = findingfocus-music` line; if it does, remove it:
+
+```bash
+sed -i '/^bucket = /d' ~/.config/rclone/rclone.conf
 ```
 
 Where the values come from (Cloudflare dashboard):
 
 1. **Account ID** (`<R2_ACCOUNT_ID>`) — dashboard URL `dash.cloudflare.com/<account-id>`, or R2 → Overview.
 2. **Access Key ID / Secret Access Key** — **R2 → Manage R2 API tokens → Create API token**. This is the *S3-type* token, not the global "API Tokens" screen. Choose **Object Read & Write**. The secret is shown **once**; save it immediately. If you lost it, delete and recreate.
-3. **Bucket** (`<BUCKET_NAME>`) — the public bucket behind `media.findingfocus.music`.
+3. **Bucket** — the public bucket behind `media.findingfocus.music` is named `findingfocus-music`.
 4. Endpoint = `https://<ACCOUNT_ID>.r2.cloudflarestorage.com`.
 
 Verify:
 
 ```bash
-rclone lsl ffmedia          # lists bucket contents
-~/bin/names.py 1            # → Wheeler Drift
+rclone lsl ffmedia:findingfocus-music   # lists bucket contents
+~/bin/names.py 1                        # → Wheeler Drift
 ```
 
 ### 5. Test recording from SuperCollider
@@ -95,14 +103,7 @@ s.waitForBoot {
 )
 ```
 
-Run it: cursor inside the block, **Ctrl+Enter** (Linux). If silent, check where the audio lives:
-
-```supercollider
-s.options.numOutputBusChannels.postln;   // number of output channels
-s.scope;                                  // watch which channels move as music plays
-```
-
-If `s.record`/recording gives a "Command line parse failed" error, the manual `DiskOut` block above avoids that path entirely. Verify the file:
+Run it: cursor inside the block, **Ctrl+Enter** (Linux). Verify the file is loud, not silent:
 
 ```bash
 ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_volume|max_volume"
@@ -110,49 +111,10 @@ ffmpeg -i ~/recordings/*.wav -af volumedetect -f null - 2>&1 | grep -E "mean_vol
 
 `max_volume` should be something like `-1.0 dB`, not `-91 dB`. To capture a whole set, set `dur` to its length and start at the same time as the stream.
 
-Note: `Buffer.alloc(server, n, channels)` takes **frames**, not samples — don't multiply by `numChans` or the file comes out twice as long with its second half silent.
+Notes from the sessions that worked:
 
-#### Troubleshooting: "Command line parse failed"
-
-That error is **scsynth failing to boot**, not the recorder: it appears whenever an eval re-boots a dead server. The first recording works and later ones fail whenever the server went down. The red "R" record button only shows while a server is running — if you don't see it, the server is down. To recover and record:
-
-```supercollider
-`pkill -9 -f scsynth; pkill -9 -f jackd`;          // kill zombie servers
-Server.default.reboot;                              // boot again — read any "--> token" in the log
-```
-
-Then re-run the recorder block above. If boot still fails, paste the token printed after `Command line parse failed -->`.
-
-scsynth itself booting fine (check in a terminal: `scsynth -u 57111` prints `SuperCollider 3 server ready.`) means the failure is in the `ServerOptions` sclang passes, not the binary. Reset them:
-
-```supercollider
-s.options.device = nil;
-s.options.numBuffers = 1024;
-s.options.memSize = 8192;
-s.options.numInputBusChannels = 2;
-s.options.numOutputBusChannels = 2;   // set 8 if your SuperDirt uses 8 channels
-s.reboot;
-```
-
-If you reboot while Tidal patterns are still playing, the fresh server comes up without SuperDirt's synthdefs and you get a storm of `SynthDef not found` / `Node not found` errors. Recover in order:
-
-1. `hush` in the Tidal editor (silence patterns).
-2. Easiest: quit and reopen the SCIDE — the startup file auto-boots the server and SuperDirt cleanly.
-3. Or in SC, wrap the restart in an explicit Routine so waits are legal:
-   ```supercollider
-   (
-   fork {
-       s.quit;
-       0.5.wait;
-       s.boot;
-       s.doSync;
-       ~dirt = SuperDirt.start;
-       s.sync;
-       "GRAND ON".postln;
-   };
-   )
-   ```
-4. Restart the Tidal session so it reconnects to port 57120.
+- `Buffer.alloc(server, n, channels)` takes **frames**, not samples — don't multiply by `numChans` or the file comes out twice as long with its second half silent.
+- If you reboot the server while Tidal patterns are still playing, the new server comes up without SuperDirt's synthdefs and you'll see a storm of `SynthDef not found` errors. Easiest recovery: `hush` in Tidal, then quit and reopen the SCIDE (its startup file boots the server + SuperDirt cleanly), then restart the Tidal session.
 
 ### 6. Test the pipeline without uploading
 
@@ -210,6 +172,6 @@ done
 **Deleting old legacy files** (`track1.mp3`, `track2.mp3` — no longer referenced by the site):
 
 ```bash
-rclone delete ffmedia:track1.mp3
-rclone delete ffmedia:track2.mp3
+rclone delete ffmedia:findingfocus-music/track1.mp3
+rclone delete ffmedia:findingfocus-music/track2.mp3
 ```
