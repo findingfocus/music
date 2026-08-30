@@ -2,7 +2,7 @@
 	import { onDestroy, onMount } from 'svelte';
 	import type WSType from 'wavesurfer.js';
 	import { renderProfessionalWave, setAuthoredPeaks } from './render-wave';
-	import { loadTracks, SEED_TRACKS, type Track } from './tracks';
+	import { loadTracks, type Track } from './tracks';
 	import { THEME } from './theme';
 
 	let waveformEl!: HTMLDivElement;
@@ -23,7 +23,7 @@
 	let overlayOpen = $state(false);
 	let codeCopied = $state(false);
 	let volume = $state(1);
-	let tracks = $state<Track[]>(SEED_TRACKS);
+	let tracks = $state<Track[]>([]);
 
 	const track = $derived(tracks[current]);
 	const trackCountLabel = $derived(`[${current + 1}/${tracks.length}]`);
@@ -56,15 +56,18 @@
 	}
 
 	function loadTrack(i: number, autoplay: boolean) {
+		if (tracks.length === 0) return;
 		current = i;
 		pendingPlay = autoplay;
 		const t = tracks[current];
+		if (!t) return;
 		setAuthoredPeaks(t.peaks);
 		updateMediaSession(t);
 		ws?.load(t.url, [t.peaks.map((p) => p / 100)], t.duration);
 	}
 
 	function step(delta: number) {
+		if (tracks.length === 0) return;
 		loadTrack((current + delta + tracks.length) % tracks.length, ws?.isPlaying() ?? false);
 	}
 
@@ -83,6 +86,7 @@
 
 	async function copyCode(e: MouseEvent) {
 		e.stopPropagation();
+		if (!track?.sub?.length) return;
 		try {
 			await navigator.clipboard.writeText(track.sub.join('\n\n'));
 			codeCopied = true;
@@ -103,9 +107,9 @@
 
 	onMount(() => {
 		loadTracks().then((next) => {
-			if (disposed || next.length === 0) return;
+			if (disposed) return;
 			tracks = next;
-			if (ws) loadTrack(Math.min(current, next.length - 1), ws.isPlaying());
+			if (ws && next.length > 0) loadTrack(Math.min(current, next.length - 1), ws.isPlaying());
 		});
 		(async () => {
 			try {
@@ -139,7 +143,7 @@
 					playing = true;
 					statusHtml =
 						'playing <span class="state-track">&gt; ' +
-						tracks[current].title.replace(/\s+/g, '_') +
+						(tracks[current]?.title ?? '').replace(/\s+/g, '_') +
 						'.wav</span>';
 				});
 				ws.on('pause', () => {
@@ -196,12 +200,12 @@
 <div class="body-pad">
 	<div class="comment">findingfocus.music <span>{trackCountLabel}</span></div>
 	<div class="now-playing">
-		<span class="kw">{track.title}</span>
-		{#if track.date}
+		<span class="kw">{track?.title ?? 'no tracks yet'}</span>
+		{#if track?.date}
 			<span class="date">({track.date})</span>
 		{/if}
 	</div>
-	<button type="button" class="code-line" onclick={openOverlay}>{track.sub[0]}</button>
+	<button type="button" class="code-line" onclick={openOverlay}>{track?.sub?.[0] ?? ''}</button>
 
 	<div class="code-overlay" class:show={overlayOpen}>
 		<button type="button" class="code-overlay-close" aria-label="Close track code" onclick={closeOverlay}></button>
@@ -213,7 +217,7 @@
 					<svg viewBox="0 0 16 16" width="14" height="14" fill="currentColor"><path d="M0 6.75C0 5.784.784 5 1.75 5h1.5a.75.75 0 010 1.5h-1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-1.5a.75.75 0 011.5 0v1.5A1.75 1.75 0 019.25 16h-7.5A1.75 1.75 0 010 14.25v-7.5z"/><path d="M5 1.75C5 .784 5.784 0 6.75 0h7.5C15.216 0 16 .784 16 1.75v7.5A1.75 1.75 0 0114.25 11h-7.5A1.75 1.75 0 015 9.25v-7.5zM6.75 1.5a.25.25 0 00-.25.25v7.5c0 .138.112.25.25.25h7.5a.25.25 0 00.25-.25v-7.5a.25.25 0 00-.25-.25h-7.5z"/></svg>
 				{/if}
 			</button>
-			<div>{track.sub.join('\n\n')}</div>
+			<div>{track?.sub.join('\n\n') ?? ''}</div>
 		</div>
 	</div>
 
