@@ -60,10 +60,17 @@
 				{ src: '/ff-512.png', sizes: '512x512', type: 'image/png' }
 			]
 		});
-		navigator.mediaSession.setActionHandler('play', () => ws?.play());
+		navigator.mediaSession.setActionHandler('play', () => {
+			void playMedia();
+		});
 		navigator.mediaSession.setActionHandler('pause', () => ws?.pause());
 		navigator.mediaSession.setActionHandler('previoustrack', () => prevBtn.click());
 		navigator.mediaSession.setActionHandler('nexttrack', () => nextBtn.click());
+	}
+
+	async function playMedia() {
+		if (audioContext?.state === 'suspended') await audioContext.resume();
+		await ws?.play();
 	}
 
 	function sourcePageUrl(url: string) {
@@ -234,6 +241,9 @@
 				});
 				const media = ws.getMediaElement();
 				media.crossOrigin = 'anonymous';
+				media.preload = 'metadata';
+				media.setAttribute('playsinline', '');
+				media.setAttribute('webkit-playsinline', '');
 				try {
 					audioContext = new AudioContext();
 					const source = audioContext.createMediaElementSource(media);
@@ -291,6 +301,7 @@
 				});
 				ws.on('play', () => {
 					void audioContext?.resume();
+					if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 					if (!visualizerFrame) drawVisualizer();
 					playing = true;
 					statusHtml =
@@ -299,6 +310,7 @@
 						'.mp3</span>';
 				});
 				ws.on('pause', () => {
+					if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 					playing = false;
 					statusHtml = 'paused';
 				});
@@ -461,7 +473,7 @@
 			target="_blank"
 			rel="noopener"
 			class="src-link"
-			title={track?.sourceUrl ? `View source for ${track.title}` : 'View Tidal source repository'}
+			title={track?.sourceUrl ? `View source code for ${track.title}` : 'View Tidal source repository'}
 		>
 			<svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor"><path d="M16.777 0c1.602 0 2.9 1.299 2.9 2.9 0 1.602-1.298 2.9-2.9 2.9-1.085 0-2.031-.596-2.529-1.479h-1.338c-2.333 0-4.228 1.872-4.265 4.195v2.118a7.076 7.076 0 0 1 4.148-1.42h1.455c.497-.883 1.444-1.479 2.529-1.479 1.602 0 2.9 1.299 2.9 2.9 0 1.602-1.298 2.9-2.9 2.9-1.085 0-2.031-.596-2.529-1.479h-1.338c-2.333 0-4.228 1.872-4.265 4.195v2.319a2.906 2.906 0 0 1 1.479 2.529c0 1.602-1.298 2.9-2.9 2.9-1.602 0-2.9-1.298-2.9-2.9 0-1.085.596-2.032 1.479-2.53v-9.982c0-3.887 3.12-7.045 6.992-7.108h1.455C14.746.596 15.692 0 16.777 0zM7.223 19.905a1.195 1.195 0 0 0 0 2.39 1.195 1.195 0 0 0 0-2.39zm9.554-10.465a1.195 1.195 0 0 0 0 2.39 1.195 1.195 0 0 0 0-2.39zm0-7.734a1.195 1.195 0 0 0 0 2.39 1.195 1.195 0 0 0 0-2.39z"/></svg>
 			source code
