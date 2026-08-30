@@ -121,6 +121,17 @@ Server.default.reboot;                              // boot again — read any "
 
 Then re-run the recorder block above. If boot still fails, paste the token printed after `Command line parse failed -->`.
 
+scsynth itself booting fine (check in a terminal: `scsynth -u 57111` prints `SuperCollider 3 server ready.`) means the failure is in the `ServerOptions` sclang passes, not the binary. Reset them:
+
+```supercollider
+s.options.device = nil;
+s.options.numBuffers = 1024;
+s.options.memSize = 8192;
+s.options.numInputBusChannels = 2;
+s.options.numOutputBusChannels = 2;   // set 8 if your SuperDirt uses 8 channels
+s.reboot;
+```
+
 ### 6. Test the pipeline without uploading
 
 ```bash
