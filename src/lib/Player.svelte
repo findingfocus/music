@@ -24,7 +24,6 @@
 	let statusHtml = $state('paused');
 	let overlayOpen = $state(false);
 	let codeCopied = $state(false);
-	let visualizerOn = $state(true);
 	let volume = $state(1);
 	let tracks = $state<Track[]>([]);
 	let audioContext: AudioContext | null = null;
@@ -32,6 +31,7 @@
 	let visualizerFrame = 0;
 	let smoothWave: Float32Array | null = null;
 	let wavePeak = 0;
+	const visualizerOn = true;
 
 	const track = $derived(tracks[current]);
 	const trackCountLabel = $derived(`[${current + 1}/${tracks.length}]`);
@@ -400,16 +400,13 @@
 				<svg viewBox="0 0 24 24" fill="currentColor"><path d="M16 6h2v12h-2zM6 6v12l8.5-6z"/></svg>
 			</button>
 		</div>
-		{#if visualizerOn}
-			<div class="visualizer-frame" aria-label="Live audio spectrum">
-				<canvas bind:this={visualizerEl}></canvas>
-			</div>
-		{/if}
+		<div class="visualizer-frame" aria-label="Live audio spectrum">
+			<canvas bind:this={visualizerEl}></canvas>
+		</div>
 	</div>
 
 	<div class="loop-row">
 		<button class="on" onclick={toggleLoop}>{loopMode === 'all' ? 'loop: all tracks' : 'loop: this track'}</button>
-		<button class="on" onclick={() => (visualizerOn = !visualizerOn)}>{visualizerOn ? 'viz: on' : 'viz: off'}</button>
 	</div>
 </div>
 
