@@ -28,6 +28,9 @@
 	let infoOverlayOpen = $state(false);
 	let codeCopied = $state(false);
 	let volume = $state(1);
+	$effect(() => {
+		ws?.setVolume(volume);
+	});
 	let tracks = $state<Track[]>([]);
 	let audioContext: AudioContext | null = null;
 	let analyser: AnalyserNode | null = null;
@@ -451,11 +454,7 @@
 			min="0"
 			max="1"
 			step="0.01"
-			value={volume}
-			oninput={(e) => {
-				volume = Number((e.currentTarget as HTMLInputElement).value);
-				ws?.setVolume(volume);
-			}}
+			bind:value={volume}
 		/>
 		</div>
 		{#if track?.url}
