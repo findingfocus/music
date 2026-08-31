@@ -286,25 +286,27 @@
 				media.preload = 'metadata';
 				media.setAttribute('playsinline', '');
 				media.setAttribute('webkit-playsinline', '');
-				if (!isAppleMobile()) {
-					try {
-						audioContext = new AudioContext();
-						const source = audioContext.createMediaElementSource(media);
+				try {
+					audioContext = new AudioContext();
+					const source = audioContext.createMediaElementSource(media);
+					volumeGain = audioContext.createGain();
+					if (isAppleMobile()) {
+						source.connect(volumeGain);
+					} else {
 						analyser = audioContext.createAnalyser();
-						volumeGain = audioContext.createGain();
 						analyser.fftSize = 1024;
 						analyser.smoothingTimeConstant = 0.84;
 						source.connect(analyser);
 						analyser.connect(volumeGain);
-						volumeGain.connect(audioContext.destination);
-						applyVolume(volume);
 						drawVisualizer();
-					} catch (error) {
-						console.warn('visualizer unavailable:', error);
-						audioContext = null;
-						analyser = null;
-						volumeGain = null;
 					}
+					volumeGain.connect(audioContext.destination);
+					applyVolume(volume);
+				} catch (error) {
+					console.warn('audio effects unavailable:', error);
+					audioContext = null;
+					analyser = null;
+					volumeGain = null;
 				}
 				let seekMuted = false;
 				let seekRampId = 0;
