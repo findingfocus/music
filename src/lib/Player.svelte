@@ -29,11 +29,12 @@
 	let codeCopied = $state(false);
 	let volume = $state(1);
 	$effect(() => {
-		ws?.setVolume(volume);
+		applyVolume(volume);
 	});
 	let tracks = $state<Track[]>([]);
 	let audioContext: AudioContext | null = null;
 	let analyser: AnalyserNode | null = null;
+	let volumeGain: GainNode | null = null;
 	let visualizerFrame = 0;
 	let smoothWave: Float32Array | null = null;
 	let wavePeak = 0;
@@ -83,6 +84,16 @@
 	function isAppleMobile() {
 		return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
 			(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+	}
+
+	function applyVolume(value: number) {
+		const nextVolume = Math.min(1, Math.max(0, value));
+		if (volumeGain && audioContext) {
+			ws?.setVolume(1);
+			volumeGain.gain.setValueAtTime(nextVolume, audioContext.currentTime);
+		} else {
+			ws?.setVolume(nextVolume);
+		}
 	}
 
 	function loadTrack(i: number, autoplay: boolean) {
@@ -280,15 +291,19 @@
 						audioContext = new AudioContext();
 						const source = audioContext.createMediaElementSource(media);
 						analyser = audioContext.createAnalyser();
+						volumeGain = audioContext.createGain();
 						analyser.fftSize = 1024;
 						analyser.smoothingTimeConstant = 0.84;
 						source.connect(analyser);
-						analyser.connect(audioContext.destination);
+						analyser.connect(volumeGain);
+						volumeGain.connect(audioContext.destination);
+						applyVolume(volume);
 						drawVisualizer();
 					} catch (error) {
 						console.warn('visualizer unavailable:', error);
 						audioContext = null;
 						analyser = null;
+						volumeGain = null;
 					}
 				}
 				let seekMuted = false;
@@ -297,7 +312,11 @@
 					if (ws?.isPlaying()) {
 						seekRampId++;
 						seekMuted = true;
-						media.volume = 0;
+						if (volumeGain && audioContext) {
+							volumeGain.gain.setValueAtTime(0, audioContext.currentTime);
+						} else {
+							media.volume = 0;
+						}
 					}
 				};
 				const restoreAfterSeek = () => {
@@ -308,7 +327,12 @@
 					const ramp = (now: number) => {
 						if (rampId !== seekRampId) return;
 						const progress = Math.min(1, (now - started) / 800);
-						media.volume = volume * progress;
+						const nextVolume = volume * progress;
+						if (volumeGain && audioContext) {
+							volumeGain.gain.setValueAtTime(nextVolume, audioContext.currentTime);
+						} else {
+							media.volume = nextVolume;
+						}
 						if (progress < 1) requestAnimationFrame(ramp);
 					};
 					requestAnimationFrame(ramp);
