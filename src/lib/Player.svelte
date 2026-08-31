@@ -183,7 +183,8 @@
 						const localPeak = samplePeak(cursor + (i / Math.max(1, bars - 1) - 0.5) * windowSpan);
 						const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
-						targets[i] = playing ? (localPeak / 100) * taper : 0;
+						const relativePeak = Math.max(0, localPeak / 100);
+						targets[i] = playing ? Math.pow(relativePeak, 1.7) * taper : 0;
 					}
 				}
 				const loud = Math.max(...targets);
@@ -194,7 +195,7 @@
 					const pv = targets[Math.max(0, i - 1)];
 					const nx = targets[Math.min(bars - 1, i + 1)];
 					const sp = (pv + targets[i] * 2 + nx) / 4;
-					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.3 : 0.14;
+					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.5 : 0.22;
 					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * response;
 				}
 				const idle = 0.04 * h;
