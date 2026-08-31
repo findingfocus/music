@@ -344,10 +344,40 @@ body{
 }
 .volume-control{ display:flex; align-items:center; gap: 6px; }
 .volume-row input[type="range"]{
+  -webkit-appearance: none;
+  appearance: none;
   width: 120px;
-  height: 6px;
+  height: 20px;
+  background: transparent;
   accent-color: var(--amber);
   cursor: pointer;
+  touch-action: none;
+}
+.volume-row input[type="range"]::-webkit-slider-runnable-track{
+  height: 6px;
+  background: var(--text-dim);
+  border-radius: 3px;
+}
+.volume-row input[type="range"]::-webkit-slider-thumb{
+  -webkit-appearance: none;
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--amber);
+  margin-top: -4px;
+}
+.volume-row input[type="range"]::-moz-range-track{
+  height: 6px;
+  background: var(--text-dim);
+  border-radius: 3px;
+}
+.volume-row input[type="range"]::-moz-range-thumb{
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--amber);
+  border: none;
 }
 .download-link{
   display:flex;
@@ -374,7 +404,8 @@ body{
   .transport-row{ gap: 18px; }
   .transport{ gap: 16px; }
   .volume-row{ padding-bottom: 20px; }
-  .volume-row input[type="range"]{ width: 110px; }
+  .volume-control{ width: 100%; }
+  .volume-row input[type="range"]{ width: 100%; }
   .state-track{ display: none; }
 }
 @media (max-width: 1000px){

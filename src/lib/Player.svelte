@@ -157,7 +157,7 @@
 					const duration = track?.duration || 1;
 					const progress = Math.min(1, Math.max(0, (ws?.getCurrentTime() ?? 0) / duration));
 					const cursor = progress * Math.max(0, peaks.length - 1);
-					const windowSpan = Math.min(14, Math.max(0, peaks.length - 1));
+					const windowSpan = Math.min(36, Math.max(0, peaks.length - 1));
 					const samplePeak = (sample: number) => {
 						if (peaks.length === 0) return 0;
 						const lower = Math.max(0, Math.min(peaks.length - 1, Math.floor(sample)));
@@ -165,13 +165,11 @@
 						const blend = Math.max(0, Math.min(1, sample - lower));
 						return (peaks[lower] ?? 0) * (1 - blend) + (peaks[upper] ?? 0) * blend;
 					};
-					const currentPeak = samplePeak(cursor);
 					for (let i = 0; i < bars; i++) {
 						const localPeak = samplePeak(cursor + (i / Math.max(1, bars - 1) - 0.5) * windowSpan);
-						const peak = currentPeak * 0.65 + localPeak * 0.35;
 						const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
-						targets[i] = playing ? (peak / 100) * taper : 0;
+						targets[i] = playing ? (localPeak / 100) * taper : 0;
 					}
 				}
 				const loud = Math.max(...targets);
@@ -182,7 +180,7 @@
 					const pv = targets[Math.max(0, i - 1)];
 					const nx = targets[Math.min(bars - 1, i + 1)];
 					const sp = (pv + targets[i] * 2 + nx) / 4;
-					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.8 : 0.16;
+					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.3 : 0.14;
 					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * response;
 				}
 				const idle = 0.04 * h;
