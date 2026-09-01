@@ -36,6 +36,8 @@
 	let audioContext: AudioContext | null = null;
 	let analyser: AnalyserNode | null = null;
 	let volumeGain: GainNode | null = null;
+	let visualizerMedia: HTMLAudioElement | null = null;
+	let visualizerMuteGain: GainNode | null = null;
 	let visualizerFrame = 0;
 	let smoothWave: Float32Array | null = null;
 	let wavePeak = 0;
@@ -109,6 +111,28 @@
 		}
 	}
 
+	function syncVisualizerTrack(url: string) {
+		if (!visualizerMedia) return;
+		visualizerMedia.src = url;
+		visualizerMedia.loop = loopMode === 'one';
+		visualizerMedia.load();
+	}
+
+	function syncVisualizerTime(time = ws?.getCurrentTime() ?? 0) {
+		if (!visualizerMedia || visualizerMedia.readyState === 0) return;
+		if (Math.abs(visualizerMedia.currentTime - time) > 0.2) visualizerMedia.currentTime = time;
+	}
+
+	function playVisualizer() {
+		if (!visualizerMedia) return;
+		syncVisualizerTime();
+		void visualizerMedia.play().catch(() => undefined);
+	}
+
+	function pauseVisualizer() {
+		visualizerMedia?.pause();
+	}
+
 	function loadTrack(i: number, autoplay: boolean) {
 		if (tracks.length === 0) return;
 		current = i;
@@ -119,6 +143,7 @@
 		updateMediaSession(t);
 		ws?.load(t.url, [t.peaks.map((p) => p / 100)], t.duration);
 		applyLoopAttr();
+		syncVisualizerTrack(t.url);
 	}
 
 	function applyLoopAttr() {
@@ -134,6 +159,7 @@
 	function toggleLoop() {
 		loopMode = loopMode === 'all' ? 'one' : 'all';
 		applyLoopAttr();
+		if (visualizerMedia) visualizerMedia.loop = loopMode === 'one';
 	}
 
 	async function togglePlay() {
@@ -284,7 +310,12 @@
 	};
 
 	const onVisibilityChange = () => {
-		if (document.visibilityState === 'visible' && playing) void resumeAudio();
+		if (document.visibilityState === 'visible' && playing) {
+			void resumeAudio();
+			playVisualizer();
+		} else if (document.visibilityState === 'hidden') {
+			pauseVisualizer();
+		}
 	};
 
 	onMount(() => {
@@ -344,6 +375,29 @@
 						analyser = null;
 						volumeGain = null;
 					}
+				} else {
+					try {
+						visualizerMedia = new Audio();
+						visualizerMedia.crossOrigin = 'anonymous';
+						visualizerMedia.preload = 'auto';
+						audioContext = new AudioContext();
+						const source = audioContext.createMediaElementSource(visualizerMedia);
+						analyser = audioContext.createAnalyser();
+						analyser.fftSize = 1024;
+						analyser.smoothingTimeConstant = 0.84;
+						visualizerMuteGain = audioContext.createGain();
+						visualizerMuteGain.gain.value = 0;
+						source.connect(analyser);
+						analyser.connect(visualizerMuteGain);
+						visualizerMuteGain.connect(audioContext.destination);
+						drawVisualizer();
+					} catch (error) {
+						console.warn('mobile visualizer unavailable:', error);
+						visualizerMedia = null;
+						audioContext = null;
+						analyser = null;
+						visualizerMuteGain = null;
+					}
 				}
 				let seekMuted = false;
 				let seekRampId = 0;
@@ -358,6 +412,7 @@
 						}
 					}
 				};
+				const syncVisualizerSeek = () => syncVisualizerTime(media.currentTime);
 				const restoreAfterSeek = () => {
 					if (!seekMuted) return;
 					seekMuted = false;
@@ -378,10 +433,12 @@
 				};
 				ws.on('interaction', muteForSeek);
 				media.addEventListener('seeking', muteForSeek);
+				media.addEventListener('seeking', syncVisualizerSeek);
 				media.addEventListener('seeked', restoreAfterSeek);
 				cleanupSeekAudio = () => {
 					seekRampId++;
 					media.removeEventListener('seeking', muteForSeek);
+					media.removeEventListener('seeking', syncVisualizerSeek);
 					media.removeEventListener('seeked', restoreAfterSeek);
 				};
 				ws.on('ready', () => {
@@ -394,10 +451,12 @@
 				});
 				ws.on('timeupdate', (t) => {
 					curTime = formatTime(t);
+					syncVisualizerTime(t);
 				});
 				ws.on('play', () => {
 					configurePlaybackAudioSession();
 					void audioContext?.resume();
+					playVisualizer();
 					if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 					if (!visualizerFrame) drawVisualizer();
 					playing = true;
@@ -407,6 +466,7 @@
 						'.mp3</span>';
 				});
 				ws.on('pause', () => {
+					pauseVisualizer();
 					if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'paused';
 					playing = false;
 					statusHtml = 'paused';
@@ -445,6 +505,10 @@
 			cancelAnimationFrame(visualizerFrame);
 			void audioContext?.close();
 		}
+		visualizerMedia?.pause();
+		visualizerMedia?.removeAttribute('src');
+		visualizerMedia = null;
+		visualizerMuteGain = null;
 		ws = null;
 	});
 </script>
