@@ -5,8 +5,10 @@ import struct
 import subprocess
 import sys
 
-N = 160
 RATE = 8000
+TARGET_SAMPLES_PER_SECOND = 8
+MIN_SAMPLES = 160
+MAX_SAMPLES = 4800
 
 
 def read_mono_float(path):
@@ -23,11 +25,15 @@ def read_mono_float(path):
 def compute(path):
     samples = read_mono_float(path)
     if len(samples) == 0:
-        return [0] * N
+        return [0] * MIN_SAMPLES
+    sample_count = max(
+        MIN_SAMPLES,
+        min(MAX_SAMPLES, round(len(samples) / RATE * TARGET_SAMPLES_PER_SECOND)),
+    )
     bars = []
-    for b in range(N):
-        lo = (b * len(samples)) // N
-        hi = max(lo + 1, ((b + 1) * len(samples)) // N)
+    for b in range(sample_count):
+        lo = (b * len(samples)) // sample_count
+        hi = max(lo + 1, ((b + 1) * len(samples)) // sample_count)
         acc = 0.0
         for i in range(lo, hi):
             acc += samples[i] * samples[i]
