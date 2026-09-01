@@ -72,8 +72,20 @@
 		navigator.mediaSession.setActionHandler('nexttrack', () => nextBtn.click());
 	}
 
+	function configurePlaybackAudioSession() {
+		const audioSession = (navigator as Navigator & {
+			audioSession?: { type: string };
+		}).audioSession;
+		if (audioSession) audioSession.type = 'playback';
+	}
+
+	async function resumeAudio() {
+		configurePlaybackAudioSession();
+		if (audioContext && audioContext.state !== 'running') await audioContext.resume();
+	}
+
 	async function playMedia() {
-		if (audioContext?.state === 'suspended') await audioContext.resume();
+		await resumeAudio();
 		await ws?.play();
 	}
 
@@ -124,7 +136,7 @@
 	}
 
 	async function togglePlay() {
-		if (audioContext?.state === 'suspended') await audioContext.resume();
+		await resumeAudio();
 		ws?.playPause();
 	}
 
@@ -255,7 +267,12 @@
 		}
 	};
 
+	const onVisibilityChange = () => {
+		if (document.visibilityState === 'visible' && playing) void resumeAudio();
+	};
+
 	onMount(() => {
+		document.addEventListener('visibilitychange', onVisibilityChange);
 		loadTracks().then((next) => {
 			if (disposed) return;
 			tracks = next;
@@ -358,6 +375,7 @@
 					curTime = formatTime(t);
 				});
 				ws.on('play', () => {
+					configurePlaybackAudioSession();
 					void audioContext?.resume();
 					if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 					if (!visualizerFrame) drawVisualizer();
@@ -393,10 +411,11 @@
 		})();
 	});
 
-	onDestroy(() => {
-		disposed = true;
-		if (typeof document !== 'undefined') {
-			document.removeEventListener('keydown', onKeydown);
+		onDestroy(() => {
+			disposed = true;
+			if (typeof document !== 'undefined') {
+				document.removeEventListener('keydown', onKeydown);
+				document.removeEventListener('visibilitychange', onVisibilityChange);
 			cleanupSeekAudio?.();
 			cleanupSeekAudio = null;
 			ws?.destroy();
