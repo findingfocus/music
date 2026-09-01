@@ -31,11 +31,10 @@ export function renderProfessionalWave(
 	if (authoredPeaks && authoredPeaks.length > 0) {
 		const peaks = authoredPeaks;
 		const n = peaks.length;
-		const UP = 2;
-		const N = n * UP;
+		const N = Math.max(48, Math.floor(W / (2 * pr)));
 		const last = n - 1;
 		const slot = W / N;
-		const barW = Math.max(1, Math.round(slot * 0.5));
+		const barW = Math.max(1, Math.round(slot * 0.45));
 		const gap = slot - barW;
 		const mid = H / 2;
 		ctx.beginPath();
