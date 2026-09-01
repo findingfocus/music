@@ -32,6 +32,7 @@
 		applyVolume(volume);
 	});
 	let tracks = $state<Track[]>([]);
+	let mobileDevice = $state(false);
 	let audioContext: AudioContext | null = null;
 	let analyser: AnalyserNode | null = null;
 	let volumeGain: GainNode | null = null;
@@ -77,6 +78,11 @@
 			audioSession?: { type: string };
 		}).audioSession;
 		if (audioSession) audioSession.type = 'playback';
+	}
+
+	function isMobileDevice() {
+		return /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+			(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
 	}
 
 	async function resumeAudio() {
@@ -267,6 +273,7 @@
 	};
 
 	onMount(() => {
+		mobileDevice = isMobileDevice();
 		document.addEventListener('visibilitychange', onVisibilityChange);
 		loadTracks().then((next) => {
 			if (disposed) return;
@@ -297,38 +304,34 @@
 				media.preload = 'metadata';
 				media.setAttribute('playsinline', '');
 				media.setAttribute('webkit-playsinline', '');
-				try {
-					audioContext = new AudioContext();
-					const source = audioContext.createMediaElementSource(media);
-					volumeGain = audioContext.createGain();
+				if (!mobileDevice) {
 					try {
-						analyser = audioContext.createAnalyser();
-						analyser.fftSize = 1024;
-						analyser.smoothingTimeConstant = 0.84;
-						source.connect(analyser);
-						analyser.connect(volumeGain);
+						audioContext = new AudioContext();
+						const source = audioContext.createMediaElementSource(media);
+						volumeGain = audioContext.createGain();
+						try {
+							analyser = audioContext.createAnalyser();
+							analyser.fftSize = 1024;
+							analyser.smoothingTimeConstant = 0.84;
+							source.connect(analyser);
+							analyser.connect(volumeGain);
+						} catch (error) {
+							console.warn('visualizer unavailable:', error);
+							analyser = null;
+							source.connect(volumeGain);
+						}
+						volumeGain.connect(audioContext.destination);
+						applyVolume(volume);
+						if (analyser) drawVisualizer();
 					} catch (error) {
-						console.warn('visualizer unavailable:', error);
+						console.warn('audio effects unavailable:', error);
+						audioContext = null;
 						analyser = null;
-						source.connect(volumeGain);
+						volumeGain = null;
 					}
-					volumeGain.connect(audioContext.destination);
-					applyVolume(volume);
-					if (analyser) drawVisualizer();
-				} catch (error) {
-					console.warn('audio effects unavailable:', error);
-					audioContext = null;
-					analyser = null;
-					volumeGain = null;
 				}
 				let seekMuted = false;
 				let seekRampId = 0;
-				const restartLoop = () => {
-					if (loopMode !== 'one' || !media.duration || media.currentTime < media.duration - 0.25) return;
-					media.loop = true;
-					media.currentTime = 0;
-					void media.play();
-				};
 				const muteForSeek = () => {
 					if (ws?.isPlaying()) {
 						seekRampId++;
@@ -361,14 +364,10 @@
 				ws.on('interaction', muteForSeek);
 				media.addEventListener('seeking', muteForSeek);
 				media.addEventListener('seeked', restoreAfterSeek);
-				media.addEventListener('timeupdate', restartLoop);
-				media.addEventListener('ended', restartLoop);
 				cleanupSeekAudio = () => {
 					seekRampId++;
 					media.removeEventListener('seeking', muteForSeek);
 					media.removeEventListener('seeked', restoreAfterSeek);
-					media.removeEventListener('timeupdate', restartLoop);
-					media.removeEventListener('ended', restartLoop);
 				};
 				ws.on('ready', () => {
 					durTime = formatTime(ws?.getDuration() ?? 0);
@@ -398,9 +397,7 @@
 					statusHtml = 'paused';
 				});
 				ws.on('finish', () => {
-					if (loopMode === 'one') {
-						restartLoop();
-					} else {
+					if (loopMode !== 'one') {
 						loadTrack((current + 1) % tracks.length, true);
 					}
 				});
@@ -500,6 +497,7 @@
 	</div>
 
 	<div class="volume-row">
+		{#if !mobileDevice}
 		<div class="volume-control">
 		<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1-3.29-2.5-4.03v8.05c1.5-.73 2.5-2.25 2.5-4.02z"/></svg>
 		<input
@@ -510,6 +508,7 @@
 			bind:value={volume}
 		/>
 		</div>
+		{/if}
 		{#if track?.url}
 			<a class="download-link" href={track.url} download aria-label="Download current track" title="Download current track">
 				<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="14" height="14" aria-hidden="true"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 20h16" stroke-linecap="round" stroke-linejoin="round"/></svg>
