@@ -393,6 +393,8 @@
 				ws.on('play', () => {
 					configurePlaybackAudioSession();
 					void audioContext?.resume();
+					const currentTrack = tracks[current];
+					if (currentTrack) updateMediaSession(currentTrack);
 					if ('mediaSession' in navigator) navigator.mediaSession.playbackState = 'playing';
 					if (!visualizerFrame) drawVisualizer();
 					playing = true;
