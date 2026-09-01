@@ -355,7 +355,7 @@ body{
 }
 .volume-row input[type="range"]::-webkit-slider-runnable-track{
   height: 6px;
-  background: var(--text-dim);
+  background: linear-gradient(to right, rgba(140,129,114,0.72) 0 calc(var(--volume) * 100%), var(--panel-line) calc(var(--volume) * 100%) 100%);
   border-radius: 3px;
 }
 .volume-row input[type="range"]::-webkit-slider-thumb{
@@ -369,7 +369,7 @@ body{
 }
 .volume-row input[type="range"]::-moz-range-track{
   height: 6px;
-  background: var(--text-dim);
+  background: linear-gradient(to right, rgba(140,129,114,0.72) 0 calc(var(--volume) * 100%), var(--panel-line) calc(var(--volume) * 100%) 100%);
   border-radius: 3px;
 }
 .volume-row input[type="range"]::-moz-range-thumb{
