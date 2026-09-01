@@ -403,7 +403,7 @@ body{
   .tab{ padding: 9px 12px; }
   .transport-row{ gap: 18px; }
   .transport{ gap: 16px; }
-  .volume-row{ padding-bottom: 20px; }
+  .volume-row{ padding-bottom: 20px; justify-content: flex-end; }
   .volume-row input[type="range"]{ width: 110px; }
   .state-track{ display: none; }
 }
