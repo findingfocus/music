@@ -31,19 +31,20 @@ export function renderProfessionalWave(
 	if (authoredPeaks && authoredPeaks.length > 0) {
 		const peaks = authoredPeaks;
 		const n = peaks.length;
-		const N = Math.max(48, Math.floor(W / (2 * pr)));
-		const last = n - 1;
-		const slot = W / N;
-		const barW = Math.max(1, Math.round(slot * 0.45));
-		const gap = slot - barW;
+		const barCss = 2;
+		const gapCss = 2;
+		const cssWidth = W / pr;
+		const N = Math.max(48, Math.floor(cssWidth / (barCss + gapCss)));
+		const slot = (barCss + gapCss) * pr;
+		const barW = barCss * pr;
+		const gap = gapCss * pr;
 		const mid = H / 2;
 		ctx.beginPath();
 		for (let j = 0; j < N; j++) {
-			const p = (j * last) / (N - 1);
-			const i0 = Math.floor(p);
-			const i1 = Math.min(i0 + 1, last);
-			const frac = p - i0;
-			const v = peaks[i0] + (peaks[i1] - peaks[i0]) * frac;
+			const from = Math.floor((j * n) / N);
+			const to = Math.max(from + 1, Math.floor(((j + 1) * n) / N));
+			let v = 0;
+			for (let i = from; i < to; i++) v = Math.max(v, peaks[i] ?? 0);
 			const h = Math.max(2 * pr, (v / 100) * H);
 			const x = j * slot + gap / 2;
 			const y = mid - h / 2;
