@@ -191,7 +191,12 @@
 						const blend = Math.max(0, Math.min(1, sample - lower));
 						return (peaks[lower] ?? 0) * (1 - blend) + (peaks[upper] ?? 0) * blend;
 					};
-					const relativePeak = Math.max(0, samplePeak(cursor) / 100);
+					const peakRadius = Math.max(1, Math.round(peaks.length / 400));
+					let responsivePeak = samplePeak(cursor);
+					for (let offset = 1; offset <= peakRadius; offset++) {
+						responsivePeak = Math.max(responsivePeak, samplePeak(cursor - offset), samplePeak(cursor + offset));
+					}
+					const relativePeak = Math.max(0, responsivePeak / 100);
 					for (let i = 0; i < bars; i++) {
 						const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
@@ -206,7 +211,7 @@
 					const pv = targets[Math.max(0, i - 1)];
 					const nx = targets[Math.min(bars - 1, i + 1)];
 					const sp = (pv + targets[i] * 2 + nx) / 4;
-					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.5 : 0.22;
+					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.75 : 0.38;
 					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * response;
 				}
 				const idle = 0.04 * h;
