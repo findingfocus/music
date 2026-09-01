@@ -191,26 +191,19 @@
 						const blend = Math.max(0, Math.min(1, sample - lower));
 						return (peaks[lower] ?? 0) * (1 - blend) + (peaks[upper] ?? 0) * blend;
 					};
-					const averagePeak = (radius: number) => {
-						let total = 0;
-						let count = 0;
-						for (let offset = -radius; offset <= radius; offset++) {
-							const peak = Math.max(0, samplePeak(cursor + offset) / 100);
-							total += peak * peak;
-							count++;
-						}
-						return Math.sqrt(total / count);
-					};
-					const sampleRadius = Math.max(1, Math.round(peaks.length / 500));
-					const bass = Math.pow(averagePeak(sampleRadius * 6), 0.8);
-					const mid = Math.pow(averagePeak(sampleRadius * 2), 1.05);
-					const treble = Math.pow(averagePeak(sampleRadius), 1.3);
+					const sampleRadius = Math.max(1, Math.round(peaks.length / 1200));
+					const currentPeak = samplePeak(cursor);
+					const nearbyPeak = Math.max(
+						currentPeak,
+						samplePeak(cursor - sampleRadius),
+						samplePeak(cursor + sampleRadius)
+					);
+					const relativePeak = Math.pow(Math.max(0, nearbyPeak / 100), 1.15);
 					for (let i = 0; i < bars; i++) {
 						const centerDist = Math.abs(i + 0.5 - half) / half;
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
-						const band = centerDist < 0.34 ? bass : centerDist < 0.7 ? mid : treble;
 						const profile = 0.88 + 0.12 * Math.cos(i * 1.7);
-						targets[i] = playing ? band * taper * profile : 0;
+						targets[i] = playing ? relativePeak * taper * profile : 0;
 					}
 				}
 				const loud = Math.max(...targets);
@@ -222,7 +215,7 @@
 					const pv = targets[Math.max(0, i - 1)];
 					const nx = targets[Math.min(bars - 1, i + 1)];
 					const sp = (pv + targets[i] * 2 + nx) / 4;
-					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.75 : 0.38;
+					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.85 : 0.5;
 					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * response;
 				}
 				const idle = 0.04 * h;
