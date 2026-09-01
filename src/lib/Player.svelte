@@ -166,25 +166,18 @@
 				const barWidth = Math.max(1 * ratio, slot * 0.4);
 				const targets = new Array(bars);
 				if (analyser) {
-					const fdata = new Uint8Array(analyser.frequencyBinCount);
-					analyser.getByteFrequencyData(fdata);
-					const sampleRate = audioContext?.sampleRate ?? 44100;
-					const minBin = Math.max(1, Math.floor((40 * analyser.fftSize) / sampleRate));
-					const maxBin = Math.min(
-						analyser.frequencyBinCount - 1,
-						Math.ceil((16000 * analyser.fftSize) / sampleRate)
-					);
-					const binRatio = maxBin / minBin;
+					const tdata = new Uint8Array(analyser.frequencyBinCount * 2);
+					analyser.getByteTimeDomainData(tdata);
+					const step = tdata.length / bars;
 					for (let i = 0; i < bars; i++) {
-						const from = Math.floor(minBin * Math.pow(binRatio, i / bars));
-						const to = Math.min(
-							maxBin + 1,
-							Math.max(from + 1, Math.floor(minBin * Math.pow(binRatio, (i + 1) / bars)))
-						);
+						const from = Math.floor(i * step);
+						const to = Math.min(tdata.length, Math.floor((i + 1) * step));
 						let s = 0;
-						for (let j = from; j < to; j++) s += fdata[j];
-						const raw = s / ((to - from) * 255);
-						targets[i] = playing ? Math.pow(raw, 0.8) : 0;
+						for (let j = from; j < to; j++) s += tdata[j];
+						const raw = Math.abs((s / (to - from) - 128) / 128);
+						const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
+						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
+						targets[i] = playing ? Math.pow(raw, 0.8) * taper : 0;
 					}
 				} else {
 					const peaks = track?.peaks ?? [];
