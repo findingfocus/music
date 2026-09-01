@@ -388,7 +388,10 @@
 					statusHtml = 'paused';
 				});
 				ws.on('finish', () => {
-					if (loopMode !== 'one') {
+					if (loopMode === 'one') {
+						ws?.setTime(0);
+						void ws?.play();
+					} else {
 						loadTrack((current + 1) % tracks.length, true);
 					}
 				});
