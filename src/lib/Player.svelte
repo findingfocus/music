@@ -200,9 +200,9 @@
 						const centerDist = Math.abs(i + 0.5 - half) / half;
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
 						const profile = 0.88 + 0.12 * Math.cos(i * 1.7);
-						const rolloff = Math.min(1, Math.max(0, (0.85 - centerDist) / 0.48));
+						const rolloff = Math.min(1, Math.max(0, (0.85 - centerDist) / 0.45));
 						const smoothRolloff = rolloff * rolloff * (3 - 2 * rolloff);
-						const movement = 0.22 + 0.78 * smoothRolloff;
+						const movement = 0.45 + 0.55 * smoothRolloff;
 						targets[i] = playing ? relativePeak * taper * profile * movement : 0;
 					}
 				}
