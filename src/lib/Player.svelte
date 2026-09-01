@@ -55,14 +55,15 @@
 
 	function updateMediaSession(t: (typeof tracks)[number]) {
 		if (!('mediaSession' in navigator)) return;
+		const artwork = (path: string) => new URL(path, location.href).href;
 		navigator.mediaSession.metadata = new MediaMetadata({
 			title: t.title,
 			artist: 'findingfocus',
 			album: 'findingfocus.music',
 			artwork: [
-				{ src: '/ff-96.png', sizes: '96x96', type: 'image/png' },
-				{ src: '/ff-256.png', sizes: '256x256', type: 'image/png' },
-				{ src: '/ff-512.png', sizes: '512x512', type: 'image/png' }
+				{ src: artwork('/ff-96.png'), sizes: '96x96', type: 'image/png' },
+				{ src: artwork('/ff-256.png'), sizes: '256x256', type: 'image/png' },
+				{ src: artwork('/ff-512.png'), sizes: '512x512', type: 'image/png' }
 			]
 		});
 		navigator.mediaSession.setActionHandler('play', () => {
@@ -203,7 +204,8 @@
 						const centerDist = Math.abs(i + 0.5 - half) / half;
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
 						const profile = 0.88 + 0.12 * Math.cos(i * 1.7);
-						targets[i] = playing ? relativePeak * taper * profile : 0;
+						const movement = centerDist < 0.34 ? 1 : centerDist < 0.7 ? 0.5 : 0.22;
+						targets[i] = playing ? relativePeak * taper * profile * movement : 0;
 					}
 				}
 				const loud = Math.max(...targets);
