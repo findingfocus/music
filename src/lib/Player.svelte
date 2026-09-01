@@ -193,17 +193,14 @@
 					};
 					const sampleRadius = Math.max(1, Math.round(peaks.length / 1200));
 					const currentPeak = samplePeak(cursor);
-					const nearbyPeak = Math.max(
-						currentPeak,
-						samplePeak(cursor - sampleRadius),
-						samplePeak(cursor + sampleRadius)
-					);
-					const relativePeak = Math.pow(Math.max(0, nearbyPeak / 100), 1.15);
+					const nearbyPeak = Math.max(samplePeak(cursor - sampleRadius), samplePeak(cursor + sampleRadius));
+					const responsivePeak = currentPeak * 0.75 + nearbyPeak * 0.25;
+					const relativePeak = Math.pow(Math.max(0, responsivePeak / 100), 1.15);
 					for (let i = 0; i < bars; i++) {
 						const centerDist = Math.abs(i + 0.5 - half) / half;
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
 						const profile = 0.88 + 0.12 * Math.cos(i * 1.7);
-						const rolloff = Math.min(1, Math.max(0, (0.85 - centerDist) / 0.52));
+						const rolloff = Math.min(1, Math.max(0, (0.85 - centerDist) / 0.48));
 						const smoothRolloff = rolloff * rolloff * (3 - 2 * rolloff);
 						const movement = 0.22 + 0.78 * smoothRolloff;
 						targets[i] = playing ? relativePeak * taper * profile * movement : 0;
@@ -218,7 +215,7 @@
 					const pv = targets[Math.max(0, i - 1)];
 					const nx = targets[Math.min(bars - 1, i + 1)];
 					const sp = (pv + targets[i] * 2 + nx) / 4;
-					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.72 : 0.42;
+					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.62 : 0.36;
 					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * response;
 				}
 				const idle = 0.04 * h;
