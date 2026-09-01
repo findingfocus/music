@@ -510,7 +510,18 @@
 	<div class="volume-row">
 		{#if !mobileDevice}
 		<div class="volume-control">
-		<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12"><path d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1-3.29-2.5-4.03v8.05c1.5-.73 2.5-2.25 2.5-4.02z"/></svg>
+		<svg viewBox="0 0 24 24" fill="currentColor" width="12" height="12" aria-hidden="true">
+			<path d="M3 9v6h4l5 5V4L7 9H3z"/>
+			{#if volume > 0}
+				<path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M15 9a4 4 0 0 1 0 6"/>
+			{/if}
+			{#if volume > 0.33}
+				<path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M17.5 6.5a8 8 0 0 1 0 11"/>
+			{/if}
+			{#if volume > 0.66}
+				<path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" d="M20 4a12 12 0 0 1 0 16"/>
+			{/if}
+		</svg>
 		<input
 			type="range"
 			min="0"
