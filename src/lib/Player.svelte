@@ -323,6 +323,12 @@
 				}
 				let seekMuted = false;
 				let seekRampId = 0;
+				const restartLoop = () => {
+					if (loopMode !== 'one' || !media.duration || media.currentTime < media.duration - 0.25) return;
+					media.loop = true;
+					media.currentTime = 0;
+					void media.play();
+				};
 				const muteForSeek = () => {
 					if (ws?.isPlaying()) {
 						seekRampId++;
@@ -355,10 +361,14 @@
 				ws.on('interaction', muteForSeek);
 				media.addEventListener('seeking', muteForSeek);
 				media.addEventListener('seeked', restoreAfterSeek);
+				media.addEventListener('timeupdate', restartLoop);
+				media.addEventListener('ended', restartLoop);
 				cleanupSeekAudio = () => {
 					seekRampId++;
 					media.removeEventListener('seeking', muteForSeek);
 					media.removeEventListener('seeked', restoreAfterSeek);
+					media.removeEventListener('timeupdate', restartLoop);
+					media.removeEventListener('ended', restartLoop);
 				};
 				ws.on('ready', () => {
 					durTime = formatTime(ws?.getDuration() ?? 0);
@@ -389,8 +399,7 @@
 				});
 				ws.on('finish', () => {
 					if (loopMode === 'one') {
-						ws?.setTime(0);
-						void ws?.play();
+						restartLoop();
 					} else {
 						loadTrack((current + 1) % tracks.length, true);
 					}
