@@ -191,16 +191,26 @@
 						const blend = Math.max(0, Math.min(1, sample - lower));
 						return (peaks[lower] ?? 0) * (1 - blend) + (peaks[upper] ?? 0) * blend;
 					};
-					const peakRadius = Math.max(1, Math.round(peaks.length / 400));
-					let responsivePeak = samplePeak(cursor);
-					for (let offset = 1; offset <= peakRadius; offset++) {
-						responsivePeak = Math.max(responsivePeak, samplePeak(cursor - offset), samplePeak(cursor + offset));
-					}
-					const relativePeak = Math.max(0, responsivePeak / 100);
+					const averagePeak = (radius: number) => {
+						let total = 0;
+						let count = 0;
+						for (let offset = -radius; offset <= radius; offset++) {
+							const peak = Math.max(0, samplePeak(cursor + offset) / 100);
+							total += peak * peak;
+							count++;
+						}
+						return Math.sqrt(total / count);
+					};
+					const sampleRadius = Math.max(1, Math.round(peaks.length / 500));
+					const bass = Math.pow(averagePeak(sampleRadius * 6), 0.8);
+					const mid = Math.pow(averagePeak(sampleRadius * 2), 1.05);
+					const treble = Math.pow(averagePeak(sampleRadius), 1.3);
 					for (let i = 0; i < bars; i++) {
-						const centerDist = Math.abs(i + 0.5 - half) / (half - 0.5);
+						const centerDist = Math.abs(i + 0.5 - half) / half;
 						const taper = 0.5 + 0.5 * Math.cos(centerDist * (Math.PI / 2));
-						targets[i] = playing ? Math.pow(relativePeak, 1.7) * taper : 0;
+						const band = centerDist < 0.34 ? bass : centerDist < 0.7 ? mid : treble;
+						const profile = 0.88 + 0.12 * Math.cos(i * 1.7);
+						targets[i] = playing ? band * taper * profile : 0;
 					}
 				}
 				const loud = Math.max(...targets);
