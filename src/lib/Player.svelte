@@ -93,11 +93,6 @@
 		return url.replace('/raw/branch/', '/src/branch/');
 	}
 
-	function isAppleMobile() {
-		return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
-			(navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-	}
-
 	function applyVolume(value: number) {
 		const nextVolume = Math.min(1, Math.max(0, value));
 		if (volumeGain && audioContext) {
@@ -306,18 +301,20 @@
 					audioContext = new AudioContext();
 					const source = audioContext.createMediaElementSource(media);
 					volumeGain = audioContext.createGain();
-					if (isAppleMobile()) {
-						source.connect(volumeGain);
-					} else {
+					try {
 						analyser = audioContext.createAnalyser();
 						analyser.fftSize = 1024;
 						analyser.smoothingTimeConstant = 0.84;
 						source.connect(analyser);
 						analyser.connect(volumeGain);
-						drawVisualizer();
+					} catch (error) {
+						console.warn('visualizer unavailable:', error);
+						analyser = null;
+						source.connect(volumeGain);
 					}
 					volumeGain.connect(audioContext.destination);
 					applyVolume(volume);
+					if (analyser) drawVisualizer();
 				} catch (error) {
 					console.warn('audio effects unavailable:', error);
 					audioContext = null;
