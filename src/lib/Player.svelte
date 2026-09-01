@@ -218,7 +218,7 @@
 					const pv = targets[Math.max(0, i - 1)];
 					const nx = targets[Math.min(bars - 1, i + 1)];
 					const sp = (pv + targets[i] * 2 + nx) / 4;
-					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.85 : 0.5;
+					const response = analyser ? 0.08 : sp > smoothWave[i] ? 0.72 : 0.42;
 					smoothWave[i] = smoothWave[i] + (sp - smoothWave[i]) * response;
 				}
 				const idle = 0.04 * h;
