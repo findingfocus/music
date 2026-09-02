@@ -297,6 +297,8 @@
 				const WaveSurfer = WSU.default;
 				ws = WaveSurfer.create({
 					container: waveformEl,
+					fillParent: true,
+					minPxPerSec: 0,
 					waveColor: THEME.waveBase,
 					progressColor: THEME.accent,
 					cursorColor: THEME.cursor,

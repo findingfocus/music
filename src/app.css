@@ -224,6 +224,8 @@ body{
 
 /* ---- waveform (wavesurfer.js) ---- */
 .waveform{
+  width: 100%;
+  min-width: 0;
   height: 98px;
   margin-bottom: 22px;
   background: var(--amber-04);
@@ -231,6 +233,10 @@ body{
   border-radius: 6px;
   padding: 6px 2px;
   overflow: hidden;
+}
+.waveform > div{
+  width: 100%;
+  min-width: 0;
 }
 
 .time-row{
