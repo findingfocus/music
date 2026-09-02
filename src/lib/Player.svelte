@@ -17,6 +17,7 @@
 	let pendingPlay = false;
 	let disposed = false;
 	let cleanupSeekAudio: (() => void) | null = null;
+	let waveformResizeObserver: ResizeObserver | null = null;
 
 	let current = $state(0);
 	let loopMode = $state<'all' | 'one'>('one');
@@ -299,6 +300,7 @@
 					container: waveformEl,
 					fillParent: true,
 					minPxPerSec: 0,
+					width: '100%',
 					waveColor: THEME.waveBase,
 					progressColor: THEME.accent,
 					cursorColor: THEME.cursor,
@@ -310,6 +312,12 @@
 					dragToSeek: true,
 					renderFunction: renderProfessionalWave
 				});
+				if (typeof ResizeObserver !== 'undefined') {
+					waveformResizeObserver = new ResizeObserver(() => {
+						ws?.setOptions({ width: '100%' });
+					});
+					waveformResizeObserver.observe(waveformEl);
+				}
 				const media = ws.getMediaElement();
 				media.crossOrigin = 'anonymous';
 				media.preload = 'metadata';
@@ -443,9 +451,11 @@
 			if (typeof document !== 'undefined') {
 				document.removeEventListener('keydown', onKeydown);
 				document.removeEventListener('visibilitychange', onVisibilityChange);
-			cleanupSeekAudio?.();
-			cleanupSeekAudio = null;
-			ws?.destroy();
+				cleanupSeekAudio?.();
+				cleanupSeekAudio = null;
+				waveformResizeObserver?.disconnect();
+				waveformResizeObserver = null;
+				ws?.destroy();
 		}
 		if (typeof window !== 'undefined') {
 			cancelAnimationFrame(visualizerFrame);
