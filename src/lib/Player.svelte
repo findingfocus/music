@@ -370,12 +370,20 @@
 					};
 					requestAnimationFrame(ramp);
 				};
-				ws.on('interaction', muteForSeek);
+				const updateSeekTime = () => {
+					curTime = formatTime(media.currentTime);
+				};
+				ws.on('interaction', (time) => {
+					curTime = formatTime(time);
+					muteForSeek();
+				});
 				media.addEventListener('seeking', muteForSeek);
+				media.addEventListener('seeking', updateSeekTime);
 				media.addEventListener('seeked', restoreAfterSeek);
 				cleanupSeekAudio = () => {
 					seekRampId++;
 					media.removeEventListener('seeking', muteForSeek);
+					media.removeEventListener('seeking', updateSeekTime);
 					media.removeEventListener('seeked', restoreAfterSeek);
 				};
 				ws.on('ready', () => {
