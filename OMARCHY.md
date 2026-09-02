@@ -134,6 +134,7 @@ Runs everything real (encode, peaks, index lookup, code import, merge) but only 
 - Encodes → `tracks/<date>_<n>.mp3` (192k stereo mp3).
 - Uploads mp3 + `.peaks.json`.
 - Rewrites `tracks.json` with today's entry prepended and `Cache-Control: no-cache`.
+- Before rewriting an existing `tracks.json`, commits the fetched prior state to `tracks.json` in the local tidal git checkout and pushes that commit. A failed local commit stops the upload; a failed push warns but does not stop it. The first publish has no prior state to back up.
 
 Verify:
 

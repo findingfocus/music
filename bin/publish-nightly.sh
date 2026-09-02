@@ -66,6 +66,8 @@ fi
 
 # --- mode + identity ---
 MODE="publish"
+REMOTE_FETCHED=0
+REMOTE_COUNT=0
 if [[ -n "$REPLACE_SLUG" ]]; then
   MODE="replace"
   curl -sf --max-time 10 "$R2_BASE/$R2_TRACKS" -o "$TMP/remote.json" \
@@ -99,13 +101,44 @@ PY
   if [[ -n "$TITLE_OVERRIDE" ]]; then TITLE="$TITLE_OVERRIDE"; fi
   SLUG="${DATE}_${NEXT}"
   URL_VER=$((EXIST_VER + 1))
+  REMOTE_FETCHED=1
 else
   # next index: counter lives in tracks.json, no day-tracking
-  if curl -sf --max-time 10 "$R2_BASE/$R2_TRACKS" -o "$TMP/remote.json"; then
-    NEXT=$(python3 -c "import json;print(max((t.get('index',0) for t in json.load(open('$TMP/remote.json'))),default=0)+1)")
-  else
-    NEXT=1
+  # Only an actual 404 is safe to treat as an empty bucket. Any other fetch
+  # failure must stop before a later merge could overwrite the track index.
+  if ! HTTP_STATUS="$(curl -sS --max-time 10 -o "$TMP/remote.json" \
+    -w '%{http_code}' "$R2_BASE/$R2_TRACKS")"; then
+    echo "publish: could not fetch $R2_BASE/$R2_TRACKS (HTTP ${HTTP_STATUS:-000}); refusing to upload" >&2
+    exit 1
   fi
+  case "$HTTP_STATUS" in
+    200)
+      if ! REMOTE_META="$(python3 - "$TMP/remote.json" <<'PY'
+import json, sys
+
+items = json.load(open(sys.argv[1]))
+if not isinstance(items, list):
+    raise ValueError("tracks.json must contain a JSON array")
+indices = [int(t.get("index", 0)) for t in items]
+print(len(items), max(indices, default=0))
+PY
+)"; then
+        echo "publish: fetched tracks.json is invalid; refusing to upload" >&2
+        exit 1
+      fi
+      read -r REMOTE_COUNT MAX_INDEX <<<"$REMOTE_META"
+      NEXT=$((MAX_INDEX + 1))
+      REMOTE_FETCHED=1
+      ;;
+    404)
+      rm -f "$TMP/remote.json"
+      NEXT=1
+      ;;
+    *)
+      echo "publish: could not fetch $R2_BASE/$R2_TRACKS (HTTP $HTTP_STATUS); refusing to upload" >&2
+      exit 1
+      ;;
+  esac
   if [[ -n "$TITLE_OVERRIDE" ]]; then
     TITLE="$TITLE_OVERRIDE"
   else
@@ -215,13 +248,15 @@ has_code="no"; [[ -n "$CODE_SOURCE" ]] && has_code="yes"
 echo "code  : $has_code"
 
 # --- build entry + merge ---
-python3 - "$MODE" "$TMP/remote.json" "$TMP/merged.json" "$ID" "$TITLE" "$DATE" "$NEXT" "$MP3_URL" "$DURATION" "$TMP/peaks.json" "$SUB_LINES" "$CODE_SOURCE" "$SOURCE_URL" "$SLUG" <<'PY'
+python3 - "$MODE" "$TMP/remote.json" "$TMP/merged.json" "$ID" "$TITLE" "$DATE" "$NEXT" "$MP3_URL" "$DURATION" "$TMP/peaks.json" "$SUB_LINES" "$CODE_SOURCE" "$SOURCE_URL" "$SLUG" "$REMOTE_FETCHED" <<'PY'
 import json, sys
-mode, remote_path, out_path, id_, title, date, index, mp3_url, duration, peaks_path, sub_lines, code_source, source_url, slug = sys.argv[1:]
+mode, remote_path, out_path, id_, title, date, index, mp3_url, duration, peaks_path, sub_lines, code_source, source_url, slug, remote_fetched = sys.argv[1:]
 peaks = json.load(open(peaks_path))["peaks"]
 try:
     items = json.load(open(remote_path))
 except Exception:
+    if remote_fetched == "1":
+        raise
     items = []
 if mode == "replace":
     i = next((i for i, t in enumerate(items)
@@ -248,6 +283,21 @@ else:
 json.dump(items, open(out_path, "w"), separators=(",", ":"))
 PY
 
+if [[ "$MODE" == "publish" && "$REMOTE_FETCHED" == "1" ]]; then
+  python3 - "$TMP/merged.json" "$REMOTE_COUNT" "$ID" <<'PY'
+import json, sys
+
+merged_path, previous_count, new_id = sys.argv[1:]
+items = json.load(open(merged_path))
+expected = int(previous_count) + 1
+if len(items) != expected or not items or items[0].get("id") != new_id:
+    raise SystemExit(
+        f"safety check failed: expected {expected} entries with {new_id} first, "
+        f"got {len(items)} entries"
+    )
+PY
+fi
+
 if [[ "$DRY_RUN" == "1" ]]; then
   echo "--- dry run: would upload ---"
   echo "  $REMOTE:$BUCKET/$MP3_KEY"
@@ -259,6 +309,35 @@ if [[ "$DRY_RUN" == "1" ]]; then
   python3 -c "import json;d=json.load(open('$TMP/merged.json'));print('merged tracks.json entries:',len(d));print('newest:',d[0]['id'],d[0]['title'])"
   echo "ok (nothing uploaded)"
   exit 0
+fi
+
+# Preserve the fetched pre-publish state in the local tidal repository before
+# replacing the remote index. The first publish has no prior state to back up.
+if [[ "$REMOTE_FETCHED" == "1" ]]; then
+  TIDAL_REPO=""
+  for d in $LOCAL_TIDAL_DIRS; do
+    if [[ -d "$d" ]] && git -C "$d" rev-parse --show-toplevel >/dev/null 2>&1; then
+      TIDAL_REPO=$(git -C "$d" rev-parse --show-toplevel)
+      break
+    fi
+  done
+  [[ -n "$TIDAL_REPO" ]] || {
+    echo "backup: no git checkout found in FF_TIDAL_DIR; refusing to upload" >&2
+    exit 1
+  }
+  BACKUP_FILE="$TIDAL_REPO/tracks.json"
+  if [[ -n "$(git -C "$TIDAL_REPO" status --porcelain -- tracks.json)" ]]; then
+    echo "backup: $BACKUP_FILE has uncommitted changes; refusing to overwrite it" >&2
+    exit 1
+  fi
+  if ! cmp -s "$TMP/remote.json" "$BACKUP_FILE"; then
+    cp "$TMP/remote.json" "$BACKUP_FILE"
+    git -C "$TIDAL_REPO" add -- tracks.json
+    git -C "$TIDAL_REPO" commit -m "backup tracks.json before $DATE publish"
+    if ! git -C "$TIDAL_REPO" push; then
+      echo "backup: git push failed; local commit is still available" >&2
+    fi
+  fi
 fi
 
 if [[ "$MODE" == "replace" ]]; then
