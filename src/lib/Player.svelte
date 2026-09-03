@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, createEventDispatcher } from 'svelte';
 	import type WSType from 'wavesurfer.js';
-	import { renderProfessionalWave, setAuthoredPeaks } from './render-wave';
+	import { renderProfessionalWave, setAuthoredPeaks, setAuthoredWidth } from './render-wave';
 	import { loadTracks, type Track } from './tracks';
 	import { THEME } from './theme';
 
@@ -19,6 +19,8 @@
 	let cleanupSeekAudio: (() => void) | null = null;
 	let waveformResizeObserver: ResizeObserver | null = null;
 	let renderedWaveformWidth = 0;
+	let waveformSettleTimer: number | undefined;
+	let onWaveformReflow: (() => void) | null = null;
 
 	let current = $state(0);
 	let loopMode = $state<'all' | 'one'>('one');
@@ -313,12 +315,13 @@
 					dragToSeek: true,
 					renderFunction: renderProfessionalWave
 				});
-				const resizeWaveform = () => {
+				const measureWaveform = () => {
 					const styles = getComputedStyle(waveformEl);
 					const width = Math.max(
 						0,
 						waveformEl.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight)
 					);
+					setAuthoredWidth(width);
 					if (width > 0 && width !== renderedWaveformWidth) {
 						renderedWaveformWidth = width;
 						ws?.setOptions({ width });
@@ -326,11 +329,21 @@
 				};
 				if (typeof ResizeObserver !== 'undefined') {
 					waveformResizeObserver = new ResizeObserver(() => {
-						resizeWaveform();
+						measureWaveform();
 					});
 					waveformResizeObserver.observe(waveformEl);
 				}
-				resizeWaveform();
+				const reflowWaveform = () => measureWaveform();
+				if (window.visualViewport) {
+					window.visualViewport.addEventListener('resize', reflowWaveform);
+				}
+				window.addEventListener('orientationchange', reflowWaveform);
+				onWaveformReflow = () => {
+					window.visualViewport?.removeEventListener('resize', reflowWaveform);
+					window.removeEventListener('orientationchange', reflowWaveform);
+				};
+				measureWaveform();
+				waveformSettleTimer = window.setTimeout(measureWaveform, 350);
 				const media = ws.getMediaElement();
 				media.crossOrigin = 'anonymous';
 				media.preload = 'metadata';
@@ -412,6 +425,7 @@
 				ws.on('ready', () => {
 					durTime = formatTime(ws?.getDuration() ?? 0);
 					applyLoopAttr();
+					measureWaveform();
 					if (pendingPlay) {
 						pendingPlay = false;
 						ws?.play();
@@ -469,6 +483,10 @@
 				waveformResizeObserver?.disconnect();
 				waveformResizeObserver = null;
 				renderedWaveformWidth = 0;
+				if (waveformSettleTimer) clearTimeout(waveformSettleTimer);
+				waveformSettleTimer = undefined;
+				onWaveformReflow?.();
+				onWaveformReflow = null;
 				ws?.destroy();
 		}
 		if (typeof window !== 'undefined') {
