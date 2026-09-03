@@ -161,13 +161,13 @@ body{
   background: var(--panel);
   border: 1px solid var(--panel-line);
   border-radius: 6px;
-  /* top + right padding reserved so content never runs under the copy/close
-     button (absolute top:10 right:10). */
-  padding: 48px 48px 20px 20px;
+  /* top padding reserves a strip for the copy/close button (absolute top:10
+     right:10); content flows full width below it so there's no side gap. */
+  padding: 48px 20px 20px 20px;
   font-size: 13px;
   color: var(--text);
-  max-width: 400px;
-  width: 90%;
+  max-width: 560px;
+  width: 92%;
   max-height: calc(100% - 80px);
   overflow-y: auto;
 }
