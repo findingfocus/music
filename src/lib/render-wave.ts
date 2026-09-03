@@ -5,9 +5,16 @@ const FLOOR_H = 0.03;
 
 let authoredPeaks: number[] | null = null;
 let authoredCssWidth = 0;
+let onDrawn: ((info: { cssWidth: number; canvasWidth: number; pr: number; bars: number }) => void) | null = null;
 
 export function setAuthoredPeaks(peaks: number[] | null | undefined): void {
 	authoredPeaks = peaks ?? null;
+}
+
+export function setOnWaveformDrawn(
+	fn: ((info: { cssWidth: number; canvasWidth: number; pr: number; bars: number }) => void) | null
+): void {
+	onDrawn = fn;
 }
 
 // The waveform container's CSS width (its content box). Passed in by the
@@ -63,6 +70,7 @@ export function renderProfessionalWave(
 			else ctx.rect(x, y, barW, h);
 		}
 		ctx.fill();
+		onDrawn?.({ cssWidth: authoredCssWidth, canvasWidth: W, pr, bars: N });
 		return;
 	}
 

@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, createEventDispatcher } from 'svelte';
 	import type WSType from 'wavesurfer.js';
-	import { renderProfessionalWave, setAuthoredPeaks, setAuthoredWidth } from './render-wave';
+	import { renderProfessionalWave, setAuthoredPeaks, setAuthoredWidth, setOnWaveformDrawn } from './render-wave';
 	import { loadTracks, type Track } from './tracks';
 	import { THEME } from './theme';
 
@@ -328,17 +328,15 @@
 						renderedWaveformWidth = width;
 						ws?.setOptions({ width });
 					}
-					const canvases = Array.from(waveformEl.querySelectorAll('canvas'));
+				};
+				setOnWaveformDrawn(({ cssWidth, canvasWidth, pr, bars }) => {
 					const peakLen = tracks[current]?.peaks?.length ?? -1;
 					const dur = tracks[current]?.duration ?? -1;
 					waveformDiag =
 						`dpr=${window.devicePixelRatio} | win=${window.innerWidth} | ` +
-						`wfClient=${waveformEl.clientWidth} | cont=${width} | ` +
-						`canvas=` +
-						(canvases.map((c) => `${c.width}px(x${(c.width / (c.getBoundingClientRect().width || 1)).toFixed(1)})`).join(',') ||
-							'none') +
-						` | peaks=${peakLen} | dur=${dur}s`;
-				};
+						`cont=${cssWidth} | canvas=${canvasWidth}px(x${pr.toFixed(1)}) | ` +
+						`bars=${bars} | peaks=${peakLen} | dur=${dur}s`;
+				});
 				if (typeof ResizeObserver !== 'undefined') {
 					waveformResizeObserver = new ResizeObserver(() => {
 						measureWaveform();
@@ -499,6 +497,7 @@
 				waveformSettleTimer = undefined;
 				onWaveformReflow?.();
 				onWaveformReflow = null;
+				setOnWaveformDrawn(null);
 				ws?.destroy();
 		}
 		if (typeof window !== 'undefined') {
