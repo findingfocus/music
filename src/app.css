@@ -161,16 +161,26 @@ body{
   background: var(--panel);
   border: 1px solid var(--panel-line);
   border-radius: 6px;
-  padding: 20px;
+  /* top + right padding reserved so content never runs under the copy/close
+     button (absolute top:10 right:10). */
+  padding: 48px 48px 20px 20px;
   font-size: 13px;
   color: var(--text);
   max-width: 400px;
   width: 90%;
-  word-break: break-word;
-  white-space: pre-line;
   max-height: calc(100% - 80px);
   overflow-y: auto;
 }
+.code-body{
+  margin: 0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1.55;
+  color: var(--text);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.code-body code{ font-family: inherit; }
 .info-overlay-box{ line-height: 1.65; }
 .info-overlay-box h2{
   margin-bottom: 14px;
