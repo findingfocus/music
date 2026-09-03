@@ -329,12 +329,13 @@
 						ws?.setOptions({ width });
 					}
 				};
-				setOnWaveformDrawn(({ cssWidth, canvasWidth, pr, bars }) => {
+				setOnWaveformDrawn(({ cssWidth, canvasWidth, cssRectWidth, scrollClient, scrollContent, isScrollable, pr, bars }) => {
 					const peakLen = tracks[current]?.peaks?.length ?? -1;
 					const dur = tracks[current]?.duration ?? -1;
 					waveformDiag =
 						`dpr=${window.devicePixelRatio} | win=${window.innerWidth} | ` +
-						`cont=${cssWidth} | canvas=${canvasWidth}px(x${pr.toFixed(1)}) | ` +
+						`cont=${cssWidth} | canvas=${canvasWidth}px(x${pr.toFixed(1)}) rect=${cssRectWidth.toFixed(0)} | ` +
+						`scroll=${scrollClient}/${scrollContent}${isScrollable ? '(A)' : ''} | ` +
 						`bars=${bars} | peaks=${peakLen} | dur=${dur}s`;
 				});
 				if (typeof ResizeObserver !== 'undefined') {
