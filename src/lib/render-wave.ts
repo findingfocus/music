@@ -26,18 +26,20 @@ export function renderProfessionalWave(
 ): void {
 	const W = ctx.canvas.width;
 	const H = ctx.canvas.height;
-	const pr = Math.max(1, window.devicePixelRatio || 1);
+	const rect = ctx.canvas.getBoundingClientRect();
+	const scaleX = rect.width > 0 ? W / rect.width : Math.max(1, window.devicePixelRatio || 1);
+	const scaleY = rect.height > 0 ? H / rect.height : Math.max(1, window.devicePixelRatio || 1);
 
 	if (authoredPeaks && authoredPeaks.length > 0) {
 		const peaks = authoredPeaks;
 		const n = peaks.length;
 		const barCss = 1;
 		const gapCss = 2;
-		const cssWidth = W / pr;
+		const cssWidth = rect.width > 0 ? rect.width : W / scaleX;
 		const N = Math.max(48, Math.floor(cssWidth / (barCss + gapCss)));
-		const slot = (barCss + gapCss) * pr;
-		const barW = barCss * pr;
-		const gap = gapCss * pr;
+		const slot = (barCss + gapCss) * scaleX;
+		const barW = barCss * scaleX;
+		const gap = gapCss * scaleX;
 		const last = n - 1;
 		const mid = H / 2;
 		ctx.beginPath();
@@ -47,7 +49,7 @@ export function renderProfessionalWave(
 			const i1 = Math.min(i0 + 1, last);
 			const frac = p - i0;
 			const v = (peaks[i0] ?? 0) + ((peaks[i1] ?? 0) - (peaks[i0] ?? 0)) * frac;
-			const h = Math.max(2 * pr, (v / 100) * H);
+			const h = Math.max(2 * scaleY, (v / 100) * H);
 			const x = j * slot + gap / 2;
 			const y = mid - h / 2;
 			const r = Math.min(barW / 2, h / 2);
@@ -58,8 +60,8 @@ export function renderProfessionalWave(
 		return;
 	}
 
-	const barW = 2 * pr;
-	const gapW = pr;
+	const barW = 2 * scaleX;
+	const gapW = scaleX;
 	const step = barW + gapW;
 	const nBars = Math.max(1, Math.floor(W / step));
 	const mono = mixChannels(channelData);
@@ -108,7 +110,7 @@ export function renderProfessionalWave(
 		const h = Math.max(FLOOR_H * H, Math.min(1, pw[b] / ref) * H);
 		const x = b * step;
 		const y = mid - h / 2;
-		const r = Math.min(2 * pr, h / 2);
+		const r = Math.min(2 * scaleX, h / 2);
 		if (ctx.roundRect) ctx.roundRect(x, y, barW, h, r);
 		else ctx.rect(x, y, barW, h);
 	}
