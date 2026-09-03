@@ -18,6 +18,7 @@
 	let disposed = false;
 	let cleanupSeekAudio: (() => void) | null = null;
 	let waveformResizeObserver: ResizeObserver | null = null;
+	let renderedWaveformWidth = 0;
 
 	let current = $state(0);
 	let loopMode = $state<'all' | 'one'>('one');
@@ -312,12 +313,24 @@
 					dragToSeek: true,
 					renderFunction: renderProfessionalWave
 				});
+				const resizeWaveform = () => {
+					const styles = getComputedStyle(waveformEl);
+					const width = Math.max(
+						0,
+						waveformEl.clientWidth - parseFloat(styles.paddingLeft) - parseFloat(styles.paddingRight)
+					);
+					if (width > 0 && width !== renderedWaveformWidth) {
+						renderedWaveformWidth = width;
+						ws?.setOptions({ width });
+					}
+				};
 				if (typeof ResizeObserver !== 'undefined') {
 					waveformResizeObserver = new ResizeObserver(() => {
-						ws?.setOptions({ width: '100%' });
+						resizeWaveform();
 					});
 					waveformResizeObserver.observe(waveformEl);
 				}
+				resizeWaveform();
 				const media = ws.getMediaElement();
 				media.crossOrigin = 'anonymous';
 				media.preload = 'metadata';
@@ -455,6 +468,7 @@
 				cleanupSeekAudio = null;
 				waveformResizeObserver?.disconnect();
 				waveformResizeObserver = null;
+				renderedWaveformWidth = 0;
 				ws?.destroy();
 		}
 		if (typeof window !== 'undefined') {
