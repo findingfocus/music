@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, createEventDispatcher } from 'svelte';
 	import type WSType from 'wavesurfer.js';
-	import { renderProfessionalWave, setAuthoredPeaks, setAuthoredWidth } from './render-wave';
+	import { renderProfessionalWave, setAuthoredPeaks, setAuthoredWidth, setWaveformGap } from './render-wave';
 	import { loadTracks, type Track } from './tracks';
 	import { THEME } from './theme';
 
@@ -44,6 +44,10 @@
 	let smoothWave: Float32Array | null = null;
 	let wavePeak = 0;
 	const visualizerOn = true;
+
+	// Gap (in physical px) between waveform bars. Bars stay 1px wide for max
+	// fidelity; this just adds visible separation. 0 = dense/touching.
+	const WAVEFORM_GAP = 3;
 
 	const track = $derived(tracks[current]);
 	const trackCountLabel = $derived(`[${current + 1}/${tracks.length}]`);
@@ -315,6 +319,7 @@
 					dragToSeek: true,
 					renderFunction: renderProfessionalWave
 				});
+				setWaveformGap(WAVEFORM_GAP);
 				const measureWaveform = () => {
 					const styles = getComputedStyle(waveformEl);
 					const width = Math.max(
