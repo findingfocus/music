@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount, createEventDispatcher } from 'svelte';
 	import type WSType from 'wavesurfer.js';
-	import { renderProfessionalWave, setAuthoredPeaks, setAuthoredWidth, setOnWaveformDrawn } from './render-wave';
+	import { renderProfessionalWave, setAuthoredPeaks, setAuthoredWidth } from './render-wave';
 	import { loadTracks, type Track } from './tracks';
 	import { THEME } from './theme';
 
@@ -21,8 +21,6 @@
 	let renderedWaveformWidth = 0;
 	let waveformSettleTimer: number | undefined;
 	let onWaveformReflow: (() => void) | null = null;
-
-	let waveformDiag = $state('');
 
 	let current = $state(0);
 	let loopMode = $state<'all' | 'one'>('one');
@@ -329,15 +327,6 @@
 						ws?.setOptions({ width });
 					}
 				};
-				setOnWaveformDrawn(({ cssWidth, canvasWidth, cssRectWidth, scrollClient, scrollContent, isScrollable, pr, bars }) => {
-					const peakLen = tracks[current]?.peaks?.length ?? -1;
-					const dur = tracks[current]?.duration ?? -1;
-					waveformDiag =
-						`dpr=${window.devicePixelRatio} | win=${window.innerWidth} | ` +
-						`cont=${cssWidth} | canvas=${canvasWidth}px(x${pr.toFixed(1)}) rect=${cssRectWidth.toFixed(0)} | ` +
-						`scroll=${scrollClient}/${scrollContent}${isScrollable ? '(A)' : ''} | ` +
-						`bars=${bars} | peaks=${peakLen} | dur=${dur}s`;
-				});
 				if (typeof ResizeObserver !== 'undefined') {
 					waveformResizeObserver = new ResizeObserver(() => {
 						measureWaveform();
@@ -498,7 +487,6 @@
 				waveformSettleTimer = undefined;
 				onWaveformReflow?.();
 				onWaveformReflow = null;
-				setOnWaveformDrawn(null);
 				ws?.destroy();
 		}
 		if (typeof window !== 'undefined') {
@@ -565,9 +553,6 @@
 	</div>
 
 	<div class="waveform" bind:this={waveformEl}></div>
-	{#if waveformDiag}
-	<div class="waveform-diag">{waveformDiag}</div>
-	{/if}
 
 	<div class="time-row">
 		<span>{curTime}</span>

@@ -3,26 +3,11 @@ export type ChannelData = Array<Float32Array | number[]>;
 const REF_PERCENTILE = 0.95;
 const FLOOR_H = 0.03;
 
-export type WaveformDrawInfo = {
-	cssWidth: number;
-	canvasWidth: number;
-	cssRectWidth: number;
-	scrollClient: number;
-	scrollContent: number;
-	isScrollable: boolean;
-	pr: number;
-	bars: number;
-};
 let authoredPeaks: number[] | null = null;
 let authoredCssWidth = 0;
-let onDrawn: ((info: WaveformDrawInfo) => void) | null = null;
 
 export function setAuthoredPeaks(peaks: number[] | null | undefined): void {
 	authoredPeaks = peaks ?? null;
-}
-
-export function setOnWaveformDrawn(fn: ((info: WaveformDrawInfo) => void) | null): void {
-	onDrawn = fn;
 }
 
 // The waveform container's CSS width (its content box). Passed in by the
@@ -78,27 +63,6 @@ export function renderProfessionalWave(
 			else ctx.rect(x, y, barW, h);
 		}
 		ctx.fill();
-		const canvasEl = ctx.canvas as HTMLCanvasElement;
-		const cssRectWidth = canvasEl.getBoundingClientRect?.().width ?? 0;
-		let scrollClient = 0;
-		let scrollContent = 0;
-		let isScrollable = false;
-		const scrollEl = canvasEl.closest?.('.scroll') as HTMLElement | null;
-		if (scrollEl) {
-			scrollClient = scrollEl.clientWidth;
-			scrollContent = scrollEl.scrollWidth;
-			isScrollable = getComputedStyle(scrollEl).overflowX === 'auto';
-		}
-		onDrawn?.({
-			cssWidth: authoredCssWidth,
-			canvasWidth: W,
-			cssRectWidth,
-			scrollClient,
-			scrollContent,
-			isScrollable,
-			pr,
-			bars: N
-		});
 		return;
 	}
 
