@@ -70,8 +70,8 @@ export function renderProfessionalWave(
 		const perBar = n / N;
 		const pct = Math.max(0.7, Math.min(1, 2.5 / perBar));
 		const mid = H / 2;
-		ctx.beginPath();
 		const buf: number[] = [];
+		const vals = new Float64Array(N);
 		for (let j = 0; j < N; j++) {
 			const s0 = Math.floor((j * n) / N);
 			const s1 = Math.max(s0 + 1, Math.floor(((j + 1) * n) / N));
@@ -82,8 +82,21 @@ export function renderProfessionalWave(
 			}
 			buf.sort((a, b) => a - b);
 			const idx = Math.min(buf.length - 1, Math.floor((buf.length - 1) * pct));
-			const v = buf.length > 0 ? buf[idx] : 0;
-			const h = Math.max(minBar, (v / 100) * H);
+			vals[j] = buf.length > 0 ? buf[idx] : 0;
+		}
+		// Normalize per-track so the loudest bar nearly reaches the top/bottom
+		// edges regardless of how loud the track is. The tallest aggregated bar
+		// sets the scale (not the raw 0-100 peak values).
+		let ref = 0;
+		for (let j = 0; j < N; j++) if (vals[j] > ref) ref = vals[j];
+		if (ref <= 0) {
+			ctx.fillRect(0, 0, W, H);
+			return;
+		}
+		const AMP = 0.95;
+		ctx.beginPath();
+		for (let j = 0; j < N; j++) {
+			const h = Math.max(minBar, (vals[j] / ref) * H * AMP);
 			const x = Math.round(j * slotCss * pr);
 			const y = mid - h / 2;
 			const r = Math.min(barPhys / 2, h / 2);
