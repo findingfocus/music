@@ -93,7 +93,7 @@ export function renderProfessionalWave(
 			ctx.fillRect(0, 0, W, H);
 			return;
 		}
-		const AMP = 0.99;
+		const AMP = 1.1;
 		ctx.beginPath();
 		for (let j = 0; j < N; j++) {
 			const h = Math.max(minBar, (vals[j] / ref) * H * AMP);

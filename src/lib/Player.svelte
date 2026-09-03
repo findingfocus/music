@@ -48,7 +48,7 @@
 	// Gap (in CSS px) between waveform bars. Bars are 1 CSS px wide. Rendering
 	// is done in CSS space and converted to physical pixels, so the waveform
 	// looks identical regardless of the device's devicePixelRatio. 0 = dense.
-	const WAVEFORM_GAP = 3;
+	const WAVEFORM_GAP = 1.9;
 
 	const track = $derived(tracks[current]);
 	const trackCountLabel = $derived(`[${current + 1}/${tracks.length}]`);
