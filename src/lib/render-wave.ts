@@ -11,8 +11,10 @@ export function setAuthoredPeaks(peaks: number[] | null | undefined): void {
 	authoredPeaks = peaks ?? null;
 }
 
-// Gap (in physical pixels) between waveform bars. Bars stay 1px wide for
-// maximum fidelity; the gap just adds visible separation. 0 = dense.
+// Gap (in CSS pixels) between waveform bars. Bars are 1 CSS px wide. The
+// renderer lays bars out in CSS space and converts to physical pixels at draw
+// time, so the waveform looks identical regardless of the device's
+// devicePixelRatio. 0 = dense/touching.
 export function setWaveformGap(gap: number): void {
 	barGap = Math.max(0, Math.floor(gap));
 }
@@ -47,18 +49,24 @@ export function renderProfessionalWave(
 	if (authoredPeaks && authoredPeaks.length > 0) {
 		const peaks = authoredPeaks;
 		const n = peaks.length;
-		// One 1px-wide bar per slot (a slot is a bar plus any configured gap).
-		// Each bar aggregates its time slice to a percentile that adapts to how
-		// many peaks fall in the slice: dense bars (~1-2 peaks) use the max
-		// (full detail); wider gaps push toward ~70th percentile so louder
-		// slices stay taller and quieter ones shorter, keeping detail instead
-		// of flattening to all-max bars. barGap is physical px; 0 = dense.
-		const slot = 1 + barGap;
-		const N = Math.max(1, Math.floor(W / slot));
+		// Layout happens in CSS space so the waveform looks identical regardless
+		// of devicePixelRatio. Bar is 1 CSS px wide plus a configured gap; bar
+		// count derives from the CSS width, then each bar is drawn at its
+		// physical-pixel position for crisp rendering on any DPR. Each bar
+		// aggregates its time slice to a percentile that adapts to how many
+		// peaks fall in the slice: dense bars (~1-2 peaks) use the max (full
+		// detail); wider gaps push toward ~70th percentile so louder slices
+		// stay taller and quieter ones shorter, keeping detail instead of
+		// flattening to all-max bars.
+		const cssW = authoredCssWidth > 0 ? authoredCssWidth : W / pr;
+		const barCss = 1;
+		const slotCss = barCss + barGap;
+		const N = Math.max(1, Math.floor(cssW / slotCss));
 		if (n < 1) {
 			ctx.fillRect(0, 0, W, H);
 			return;
 		}
+		const barPhys = Math.max(1, Math.round(barCss * pr));
 		const perBar = n / N;
 		const pct = Math.max(0.7, Math.min(1, 2.5 / perBar));
 		const mid = H / 2;
@@ -76,17 +84,20 @@ export function renderProfessionalWave(
 			const idx = Math.min(buf.length - 1, Math.floor((buf.length - 1) * pct));
 			const v = buf.length > 0 ? buf[idx] : 0;
 			const h = Math.max(minBar, (v / 100) * H);
-			const x = j * slot;
+			const x = Math.round(j * slotCss * pr);
 			const y = mid - h / 2;
-			const r = Math.min(0.5, h / 2);
-			if (ctx.roundRect) ctx.roundRect(x, y, 1, h, r);
-			else ctx.rect(x, y, 1, h);
+			const r = Math.min(barPhys / 2, h / 2);
+			if (ctx.roundRect) ctx.roundRect(x, y, barPhys, h, r);
+			else ctx.rect(x, y, barPhys, h);
 		}
 		ctx.fill();
 		return;
 	}
 
-	const nBars = Math.max(1, W);
+	const cssW = authoredCssWidth > 0 ? authoredCssWidth : W / pr;
+	const barPhys = Math.max(1, Math.round(1 * pr));
+	const stepPhys = Math.round((1 + barGap) * pr);
+	const nBars = Math.max(1, Math.floor(cssW / (1 + barGap)));
 	const mono = mixChannels(channelData);
 	const len = mono.length;
 	if (len < 1) {
@@ -128,15 +139,14 @@ export function renderProfessionalWave(
 		return;
 	}
 	const mid = H / 2;
-	const barW = 1;
 	ctx.beginPath();
 	for (let b = 0; b < nBars; b++) {
 		const h = Math.max(FLOOR_H * H, Math.min(1, pw[b] / ref) * H);
-		const x = b;
+		const x = b * stepPhys;
 		const y = mid - h / 2;
-		const r = Math.min(0.5, h / 2);
-		if (ctx.roundRect) ctx.roundRect(x, y, barW, h, r);
-		else ctx.rect(x, y, barW, h);
+		const r = Math.min(barPhys / 2, h / 2);
+		if (ctx.roundRect) ctx.roundRect(x, y, barPhys, h, r);
+		else ctx.rect(x, y, barPhys, h);
 	}
 	ctx.fill();
 }

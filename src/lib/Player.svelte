@@ -45,8 +45,9 @@
 	let wavePeak = 0;
 	const visualizerOn = true;
 
-	// Gap (in physical px) between waveform bars. Bars stay 1px wide for max
-	// fidelity; this just adds visible separation. 0 = dense/touching.
+	// Gap (in CSS px) between waveform bars. Bars are 1 CSS px wide. Rendering
+	// is done in CSS space and converted to physical pixels, so the waveform
+	// looks identical regardless of the device's devicePixelRatio. 0 = dense.
 	const WAVEFORM_GAP = 3;
 
 	const track = $derived(tracks[current]);
