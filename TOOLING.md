@@ -1,4 +1,4 @@
-# findingfocus nightly publisher — Omarchy setup & usage
+# findingfocus music publisher — setup & usage
 
 Publishes each night's Tidal/Cycles set to findingfocus.music. One command per night; new tracks appear on the site instantly (no deploys).
 
