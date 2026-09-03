@@ -22,6 +22,8 @@
 	let waveformSettleTimer: number | undefined;
 	let onWaveformReflow: (() => void) | null = null;
 
+	let waveformDiag = $state('');
+
 	let current = $state(0);
 	let loopMode = $state<'all' | 'one'>('one');
 	let playing = $state(false);
@@ -326,6 +328,16 @@
 						renderedWaveformWidth = width;
 						ws?.setOptions({ width });
 					}
+					const canvases = Array.from(waveformEl.querySelectorAll('canvas'));
+					const peakLen = tracks[current]?.peaks?.length ?? -1;
+					const dur = tracks[current]?.duration ?? -1;
+					waveformDiag =
+						`dpr=${window.devicePixelRatio} | win=${window.innerWidth} | ` +
+						`wfClient=${waveformEl.clientWidth} | cont=${width} | ` +
+						`canvas=` +
+						(canvases.map((c) => `${c.width}px(x${(c.width / (c.getBoundingClientRect().width || 1)).toFixed(1)})`).join(',') ||
+							'none') +
+						` | peaks=${peakLen} | dur=${dur}s`;
 				};
 				if (typeof ResizeObserver !== 'undefined') {
 					waveformResizeObserver = new ResizeObserver(() => {
@@ -553,6 +565,9 @@
 	</div>
 
 	<div class="waveform" bind:this={waveformEl}></div>
+	{#if waveformDiag}
+	<div class="waveform-diag">{waveformDiag}</div>
+	{/if}
 
 	<div class="time-row">
 		<span>{curTime}</span>
