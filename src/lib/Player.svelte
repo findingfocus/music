@@ -109,22 +109,30 @@
 	}
 
 	// Preview teaser: the first code line (so multi-pattern sets point at their
-	// start rather than a tail fragment), with a " ..." trailing marker when
-	// more source lines follow. Falls back to the sub snippet when no full
-	// source is attached.
+	// start rather than a tail fragment), with a dimmed " . . ." marker when more
+	// source lines follow. Falls back to the sub snippet when no full source is
+	// attached.
 	function firstCodeLine(t: Track | undefined): string {
 		if (!t) return '';
 		const lines = (t.source ?? t.sub?.join('\n') ?? '').split('\n');
-		for (let i = 0; i < lines.length; i++) {
-			const trimmed = lines[i].trim();
-			if (!trimmed || trimmed.startsWith('--')) continue;
-			for (let j = i + 1; j < lines.length; j++) {
-				const next = lines[j].trim();
-				if (next && !next.startsWith('--')) return `${trimmed} ...`;
-			}
-			return trimmed;
+		for (const line of lines) {
+			const trimmed = line.trim();
+			if (trimmed && !trimmed.startsWith('--')) return trimmed;
 		}
 		return '';
+	}
+
+	function hasMoreCode(t: Track | undefined): boolean {
+		if (!t) return false;
+		const lines = (t.source ?? t.sub?.join('\n') ?? '').split('\n');
+		let seen = false;
+		for (const line of lines) {
+			const trimmed = line.trim();
+			if (!trimmed || trimmed.startsWith('--')) continue;
+			if (seen) return true;
+			seen = true;
+		}
+		return false;
 	}
 
 	function applyVolume(value: number) {
@@ -544,7 +552,7 @@
 			<span class="date">{track.date}</span>
 		{/if}
 	</div>
-	<button type="button" class="code-line" onclick={openOverlay}>{firstCodeLine(track)}</button>
+	<button type="button" class="code-line" onclick={openOverlay}><span class="code-line-text">{firstCodeLine(track)}</span>{#if hasMoreCode(track)}<span class="code-line-more">...</span>{/if}</button>
 
 	<div class="code-overlay" class:show={overlayOpen}>
 		<button type="button" class="code-overlay-close" aria-label="Close track code" onclick={closeOverlay}></button>

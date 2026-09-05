@@ -123,7 +123,6 @@ body{
   margin-bottom: 26px;
   white-space: nowrap;
   overflow: hidden;
-  text-overflow: ellipsis;
   max-width: 100%;
   cursor: pointer;
   background: none;
@@ -132,6 +131,20 @@ body{
   font-family: var(--mono);
   text-align: left;
   width: 100%;
+}
+.code-line-text{
+  display: inline-block;
+  max-width: calc(100% - 56px);
+  overflow: hidden;
+  white-space: nowrap;
+  vertical-align: bottom;
+}
+.code-line-more{
+  display: inline-block;
+  margin-left: -0.35rem;
+  opacity: 0.5;
+  letter-spacing: 0.3rem;
+  white-space: nowrap;
 }
 .code-overlay{
   display: none;
