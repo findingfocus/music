@@ -547,7 +547,7 @@
 <div class="body-pad">
 	<div class="comment">findingfocus.music <span>{trackCountLabel}</span></div>
 	<div class="now-playing">
-		<button type="button" class="kw title-link" onclick={openOverlay}>{track?.title ?? 'no tracks yet'}</button>
+		<div class="kw title">{track?.title ?? 'no tracks yet'}</div>
 		{#if track?.date}
 			<span class="date">{track.date}</span>
 		{/if}

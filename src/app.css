@@ -110,12 +110,12 @@ body{
   margin-bottom: 2px;
 }
 .now-playing .kw{ color: var(--plum); }
-.title-link{
-  border: none;
-  padding: 0;
-  background: none;
-  font: inherit;
-  cursor: pointer;
+.now-playing .date{
+  display: block;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--text);
+  margin-top: 2px;
 }
 .code-line{
   font-size: 12px;
@@ -132,6 +132,8 @@ body{
   text-align: left;
   width: 100%;
 }
+.code-line:hover .code-line-text{ color: var(--plum); }
+.code-line:hover .code-line-more{ color: var(--plum); }
 .code-line-text{
   display: inline-block;
   max-width: calc(100% - 56px);
@@ -142,7 +144,7 @@ body{
 .code-line-more{
   display: inline-block;
   margin-left: -0.35rem;
-  opacity: 0.5;
+  color: var(--text-dim);
   letter-spacing: 0.3rem;
   white-space: nowrap;
 }
