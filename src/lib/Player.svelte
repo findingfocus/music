@@ -108,6 +108,19 @@
 		return url.replace('/raw/branch/', '/src/branch/');
 	}
 
+	// Preview teaser: the first code line (so multi-pattern sets point at their
+	// start rather than a tail fragment). Falls back to the sub snippet when no
+	// full source is attached.
+	function firstCodeLine(t: Track | undefined): string {
+		if (!t) return '';
+		const src = t.source ?? t.sub?.join('\n') ?? '';
+		for (const line of src.split('\n')) {
+			const trimmed = line.trim();
+			if (trimmed && !trimmed.startsWith('--')) return trimmed;
+		}
+		return '';
+	}
+
 	function applyVolume(value: number) {
 		const nextVolume = Math.min(1, Math.max(0, value));
 		if (volumeGain && audioContext) {
@@ -525,7 +538,7 @@
 			<span class="date">{track.date}</span>
 		{/if}
 	</div>
-	<button type="button" class="code-line" onclick={openOverlay}>{track?.sub?.[0] ?? ''}</button>
+	<button type="button" class="code-line" onclick={openOverlay}>{firstCodeLine(track)}</button>
 
 	<div class="code-overlay" class:show={overlayOpen}>
 		<button type="button" class="code-overlay-close" aria-label="Close track code" onclick={closeOverlay}></button>
