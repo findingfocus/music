@@ -109,14 +109,20 @@
 	}
 
 	// Preview teaser: the first code line (so multi-pattern sets point at their
-	// start rather than a tail fragment). Falls back to the sub snippet when no
-	// full source is attached.
+	// start rather than a tail fragment), with a " ..." trailing marker when
+	// more source lines follow. Falls back to the sub snippet when no full
+	// source is attached.
 	function firstCodeLine(t: Track | undefined): string {
 		if (!t) return '';
-		const src = t.source ?? t.sub?.join('\n') ?? '';
-		for (const line of src.split('\n')) {
-			const trimmed = line.trim();
-			if (trimmed && !trimmed.startsWith('--')) return trimmed;
+		const lines = (t.source ?? t.sub?.join('\n') ?? '').split('\n');
+		for (let i = 0; i < lines.length; i++) {
+			const trimmed = lines[i].trim();
+			if (!trimmed || trimmed.startsWith('--')) continue;
+			for (let j = i + 1; j < lines.length; j++) {
+				const next = lines[j].trim();
+				if (next && !next.startsWith('--')) return `${trimmed} ...`;
+			}
+			return trimmed;
 		}
 		return '';
 	}
