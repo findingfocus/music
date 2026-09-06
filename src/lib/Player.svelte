@@ -64,22 +64,49 @@
 
 	function updateMediaSession(t: (typeof tracks)[number]) {
 		if (!('mediaSession' in navigator)) return;
-		navigator.mediaSession.metadata = new MediaMetadata({
-			title: t.title,
-			artist: 'findingfocus',
-			album: 'findingfocus.music',
-			artwork: [
-				{ src: '/ff-96.png', sizes: '96x96', type: 'image/png' },
-				{ src: '/ff-256.png', sizes: '256x256', type: 'image/png' },
-				{ src: '/ff-512.png', sizes: '512x512', type: 'image/png' }
-			]
-		});
-		navigator.mediaSession.setActionHandler('play', () => {
+		// Handlers register independently of metadata: if building the
+		// metadata throws in some browser, track skipping must still work.
+		const setActionHandler = (action: MediaSessionAction, handler: () => void) => {
+			try {
+				navigator.mediaSession.setActionHandler(action, handler);
+				console.log(`[session:register] ok ${action}`);
+			} catch (err) {
+				console.log(`[session:register] REJECTED ${action}: ${err}`);
+			}
+		};
+		setActionHandler('play', () => {
+			console.log('[session:action] play');
 			void playMedia();
 		});
-		navigator.mediaSession.setActionHandler('pause', () => ws?.pause());
-		navigator.mediaSession.setActionHandler('previoustrack', () => prevBtn.click());
-		navigator.mediaSession.setActionHandler('nexttrack', () => nextBtn.click());
+		setActionHandler('pause', () => {
+			console.log('[session:action] pause');
+			ws?.pause();
+		});
+		setActionHandler('previoustrack', () => {
+			console.log('[session:action] previoustrack');
+			step(-1);
+		});
+		setActionHandler('nexttrack', () => {
+			console.log('[session:action] nexttrack');
+			step(1);
+		});
+		try {
+			// Artwork URLs must be absolute: Safari ignores relative ones.
+			const artBase = typeof location !== 'undefined' ? location.origin : '';
+			navigator.mediaSession.metadata = new MediaMetadata({
+				title: t.title,
+				artist: 'findingfocus',
+				album: 'findingfocus.music',
+				artwork: [
+					{ src: `${artBase}/ff-512.png`, sizes: '512x512', type: 'image/png' },
+					{ src: `${artBase}/ff-256.png`, sizes: '256x256', type: 'image/png' },
+					{ src: `${artBase}/ff-96.png`, sizes: '96x96', type: 'image/png' }
+				]
+			});
+			console.log('[session:metadata] ok');
+		} catch (err) {
+			console.log(`[session:metadata] FAILED: ${err}`);
+		}
 	}
 
 	function configurePlaybackAudioSession() {
