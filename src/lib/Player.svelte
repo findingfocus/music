@@ -104,6 +104,11 @@
 				]
 			});
 			console.log('[session:metadata] ok');
+			// TEMP diagnostic: is the artwork URL itself fetchable here?
+			void fetch(`${artBase}/ff-512.png`, { method: 'HEAD' }).then(
+				(r) => console.log(`[session:artfetch] ${r.status} ${r.headers.get('content-type')}`),
+				(e) => console.log(`[session:artfetch] FAILED: ${e}`)
+			);
 		} catch (err) {
 			console.log(`[session:metadata] FAILED: ${err}`);
 		}
